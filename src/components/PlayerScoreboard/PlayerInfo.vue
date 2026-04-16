@@ -1,0 +1,257 @@
+<script setup lang="ts">
+import { ResourceType, SpellSlotIndex, tabsStyle, type ingameScoreboardBottomPlayerData, type tabPlayer } from '@bluebottle_gg/league-broadcast-client';
+import { computed } from 'vue';
+import SpellWithCooldown from './SpellWithCooldown.vue';
+import { useClient } from '@/client';
+import ProgressBar from './ProgressBar.vue';
+import LevelUpNotification from './LevelUpNotification.vue';
+
+const props = defineProps<{
+    scoreboardPlayer?: ingameScoreboardBottomPlayerData
+    tabPlayer?: tabPlayer
+    mirror?: boolean
+    levelUpLevel?: number | null
+    levelUpVisible?: boolean
+    levelUpExiting?: boolean
+}>()
+
+const client = useClient();
+
+const shutdown = computed(() => {
+    if (!props.scoreboardPlayer) return undefined;
+    if (props.scoreboardPlayer.shutdown < 300) {
+        return "";
+    }
+
+    return props.scoreboardPlayer.shutdown.toLocaleString("en-US", { notation: "compact", maximumFractionDigits: 0 });
+})
+
+const respawnTimeRemaining = computed(() => {
+    if (!props.scoreboardPlayer || !props.scoreboardPlayer.respawnTimeRemaining)
+        return undefined;
+    return Math.ceil(props.scoreboardPlayer.respawnTimeRemaining);
+})
+
+const ultimate = computed(() => {
+    if (!props.scoreboardPlayer) return undefined;
+    return props.tabPlayer?.abilities[SpellSlotIndex.R]
+})
+const summonerOne = computed(() => {
+    if (!props.tabPlayer) return undefined;
+    return props.tabPlayer.abilities[SpellSlotIndex.D]
+})
+
+const summonerTwo = computed(() => {
+    if (!props.tabPlayer) return undefined;
+    return props.tabPlayer.abilities[SpellSlotIndex.F]
+})
+
+const playerNameNoTag = computed(() => {
+    if (!props.scoreboardPlayer) return "";
+    const name = props.scoreboardPlayer.name;
+    const tagIndex = name.indexOf("#");
+    if (tagIndex !== -1) {
+        return name.substring(0, tagIndex);
+    }
+    return name;
+})
+
+const isDead = computed(() => !!props.scoreboardPlayer?.respawnTimeRemaining)
+
+const resourceColor = computed(() => {
+    //resource type might be a string, so parse it to enum if needed
+    const resourceType = typeof props.tabPlayer?.resource.type === "string"
+        ? ResourceType[props.tabPlayer.resource.type as keyof typeof ResourceType]
+        : props.tabPlayer?.resource.type;
+
+    switch (resourceType) {
+        case ResourceType.mana: return "#1d4ed8";
+        case ResourceType.energy: return "#d6db29";
+        case ResourceType.none: return "transparent";
+        case ResourceType.shield: return "#A9A9A9";
+        case ResourceType.battlefury:
+        case ResourceType.dragonfury:
+        case ResourceType.rage:
+        case ResourceType.heat:
+        case ResourceType.gnarfury:
+        case ResourceType.ferocity:
+        case ResourceType.bloodwell: return "#bf0000";
+        case ResourceType.wind: return "#A9A9A9";
+        case ResourceType.unknown:
+        default: return "#1d4ed8";
+    }
+})
+</script>
+
+<template>
+    <div id="player-info-container" :class="{ mirror, 'is-dead': isDead }">
+        <div class="relative overflow-hidden">
+            <div class="absolute inset-0 flex flex-col items-center justify-around gap-0.5">
+                <SpellWithCooldown class="w-full aspect-square flex-1 min-h-0 max-h-[50%]"
+                    :cooldown="summonerOne?.cooldown" :total-cooldown="summonerOne?.totalCooldown"
+                    :img="client.getCacheUrl(summonerOne?.assets?.iconAsset)" show-timer skilled />
+                <SpellWithCooldown class="w-full aspect-square flex-1 min-h-0 max-h-[50%]"
+                    :cooldown="summonerTwo?.cooldown" :total-cooldown="summonerTwo?.totalCooldown"
+                    :img="client.getCacheUrl(summonerTwo?.assets?.iconAsset)" show-timer skilled />
+            </div>
+        </div>
+        <div class="relative w-full h-full p-0.5">
+            <img id="player-champion-icon" :src="client.getCacheUrl(scoreboardPlayer?.champion?.squareImg)" />
+            <span class="shutdown-text"> {{ shutdown }}</span>
+            <span class="level-text" :style="{
+                textAlign: mirror ? 'left' : 'right',
+                right: mirror ? 'auto' : '0',
+                left: mirror ? '0' : 'auto',
+            }"> {{ scoreboardPlayer?.level }}</span>
+            <div v-if="scoreboardPlayer?.respawnTimeRemaining"
+                class="absolute flex top-0 left-0 h-full w-full justify-center items-center text-center">
+                <p class="death-timer-text">{{ respawnTimeRemaining }}</p>
+            </div>
+            <LevelUpNotification :level="levelUpLevel ?? undefined" :visible="levelUpVisible ?? false"
+                :exiting="levelUpExiting ?? false" :mirror="mirror" />
+        </div>
+        <div class="flex flex-col">
+            <div class="relative flex justify-start items-center" :class="mirror ? 'flex-row-reverse' : 'flex-row'">
+                <SpellWithCooldown class="h-6 w-6 shrink-0 rounded-full aspect-square border border-white"
+                    style="background: radial-gradient(circle at center, transparent, rgba(0, 0, 0, 0.7) 70%)"
+                    :cooldown="ultimate?.cooldown" :total-cooldown="ultimate?.totalCooldown"
+                    :img="client.getCacheUrl(ultimate?.assets?.iconAsset)" show-timer
+                    :skilled="(ultimate?.level ?? 0) > 0" />
+                <span class="player-name-text" :style="{
+                    textAlign: mirror ? 'right' : 'left'
+                }"> {{ playerNameNoTag }}</span>
+            </div>
+
+            <div class="health-grid" :class="mirror ? 'ml-auto' : ''">
+                <!-- XP Bar-->
+                <ProgressBar class="w-full" :fill-color="'purple'" :mirror="mirror"
+                    :progress-pct="(tabPlayer?.experience.current ?? 0) / (tabPlayer?.experience.nextLevel ?? 1) * 100" />
+                <!-- Health Bar-->
+                <ProgressBar class="w-full" :fill-color="'green'" :mirror="mirror"
+                    :progress-pct="(tabPlayer?.health.current ?? 0) / (tabPlayer?.health.max ?? 1) * 100" />
+                <!-- Mana Bar-->
+                <ProgressBar class="w-full" :fill-color="resourceColor" :mirror="mirror"
+                    :progress-pct="(tabPlayer?.resource.current ?? 0) / (tabPlayer?.resource.max ?? 1) * 100" />
+            </div>
+        </div>
+
+        <div class="player-stats" :class="mirror ? 'text-start' : 'text-end'">
+            <span class="absolute text-[#E2B793] w-full -translate-y-2">{{ scoreboardPlayer?.creepScore }}</span>
+            <span class="absolute w-full translate-y-2">{{ scoreboardPlayer?.kills }}/{{ scoreboardPlayer?.deaths }}/{{
+                scoreboardPlayer?.assists }}</span>
+        </div>
+
+    </div>
+</template>
+
+<style lang="css" scoped>
+#player-info-container {
+    display: grid;
+    grid-template-columns: 24px 1fr 3fr 1fr;
+    grid-template-rows: minmax(0, 1fr);
+    gap: 0px;
+    padding: 4px;
+    border-left: 1px solid rgba(255, 255, 255, 0.55);
+    overflow: hidden;
+}
+
+#player-info-container.mirror {
+    direction: rtl;
+}
+
+#player-info-container.mirror>* {
+    direction: ltr;
+}
+
+#player-info-container span {
+    width: 100%;
+    font-family: "Bebas Neue", sans-serif;
+}
+
+.level-text {
+    position: absolute;
+    bottom: -5px;
+    color: white;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 1);
+}
+
+.shutdown-text {
+    position: absolute;
+    top: 0px;
+    width: 100%;
+    text-align: center;
+    color: #E2B793;
+    /* Add a prominent text border for better visibility since champion icons can be bright, dark, etc. */
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+.death-timer-text {
+    color: red;
+    font-size: 24px;
+    font-family: "Bebas Neue", sans-serif;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 1);
+}
+
+.player-name-text {
+    color: white;
+    font-size: 12px;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 1);
+    margin-left: 4px;
+    margin-right: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+}
+
+.health-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 2fr 2fr;
+    gap: 2px;
+    width: 80%;
+    height: 100%;
+    padding-top: 2px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.player-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: white;
+    font-family: "Bebas Neue", sans-serif;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 1);
+    position: relative;
+}
+
+/* Grayscale all columns except the death timer when player is dead */
+#player-info-container>div:first-child,
+#player-info-container>div:nth-child(3),
+#player-info-container>.player-stats {
+    filter: grayscale(0);
+    transition: filter 0.5s ease;
+}
+
+#player-info-container.is-dead>div:first-child,
+#player-info-container.is-dead>div:nth-child(3),
+#player-info-container.is-dead>.player-stats {
+    filter: grayscale(1);
+}
+
+/* In the champion icon cell, gray specific elements but not the death timer overlay */
+#player-info-container #player-champion-icon,
+#player-info-container .shutdown-text,
+#player-info-container .level-text {
+    filter: grayscale(0);
+    transition: filter 0.5s ease;
+}
+
+#player-info-container.is-dead #player-champion-icon,
+#player-info-container.is-dead .shutdown-text,
+#player-info-container.is-dead .level-text {
+    filter: grayscale(1);
+}
+</style>
