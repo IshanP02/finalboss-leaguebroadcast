@@ -2,7 +2,7 @@
 import { useClient } from '@/client';
 import type { itemWithAsset } from '@bluebottle_gg/league-broadcast-client';
 import { ref } from 'vue';
-import FadeTransition from '../FadeTransition.vue';
+import FadeTransition from '../../transitions/FadeTransition.vue';
 import { handleImageError, handleImageLoad } from '@/utils/imageUtils';
 
 

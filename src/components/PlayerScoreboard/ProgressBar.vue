@@ -16,7 +16,7 @@ const props = withDefaults(defineProps<{
 
 <template>
     <div :style="{
-        'background-color': 'color-mix(in srgb, ' + fillColor + ' 60%, rgba(127, 127, 127, 0.5))',
+        'background-color': 'color-mix(in srgb, ' + fillColor + ' 50%, rgba(0, 0, 0, 0.5))',
         '--progress-pct': progressPct + '%'
     }">
         <div class="h-full" :style="{

@@ -17,7 +17,7 @@ const props = defineProps<{
     <div class="flex items-center" :class="mirror ? 'flex-row-reverse' : 'flex-row'">
         <img v-if="iconUrl" :src="iconUrl" alt="Icon" v-bind="attrs" class="w-auto object-contain"
             :class="mirror ? 'ml-2' : 'mr-2'" />
-        <span class="text-xl font-extrabold spcing tracking-tighter text-stretch-vertical capitalize">{{ text }}</span>
+        <span class="text-xl font-extrabold spcing tracking-tight text-stretch-vertical capitalize">{{ text }}</span>
     </div>
 </template>
 

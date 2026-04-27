@@ -14,7 +14,7 @@ export interface PlayerNotification {
   level?: number;
 }
 
-const DISPLAY_DURATION = 2000;
+const DISPLAY_DURATION = 4000;
 
 /**
  * Slot key encodes team + row: "Order-0" .. "Chaos-4" (10 slots total).
@@ -31,7 +31,7 @@ function slotKey(team: "Order" | "Chaos", index: number): SlotKey {
  * Creates a notification queue system for player events.
  * Each (team, row) pair processes one notification at a time.
  */
-export function useNotificationQueue() {
+export function useNotificationQueue(duration: number = DISPLAY_DURATION) {
   const queues = new Map<SlotKey, PlayerNotification[]>();
   const active: Ref<Map<SlotKey, PlayerNotification>> = ref(new Map());
   const visible: Ref<Set<SlotKey>> = ref(new Set());
@@ -84,7 +84,7 @@ export function useNotificationQueue() {
         exiting.value = new Set(exiting.value);
         processNext(key);
       }, 400);
-    }, DISPLAY_DURATION);
+    }, duration);
   }
 
   /** Get the active notification for a specific team + row, or null. */

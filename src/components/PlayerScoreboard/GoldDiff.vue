@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import FadeTransition from '../FadeTransition.vue';
+import FadeTransition from '../../transitions/FadeTransition.vue';
 
 const props = defineProps<{
     orderGold: number

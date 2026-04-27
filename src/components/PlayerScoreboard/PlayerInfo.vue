@@ -49,6 +49,7 @@ const summonerTwo = computed(() => {
 const playerNameNoTag = computed(() => {
     if (!props.scoreboardPlayer) return "";
     const name = props.scoreboardPlayer.name;
+    if (!name) return props.scoreboardPlayer.champion?.alias;
     const tagIndex = name.indexOf("#");
     if (tagIndex !== -1) {
         return name.substring(0, tagIndex);
@@ -102,6 +103,7 @@ const resourceColor = computed(() => {
                 textAlign: mirror ? 'left' : 'right',
                 right: mirror ? 'auto' : '0',
                 left: mirror ? '0' : 'auto',
+                color: isDead ? '#E2B793' : 'white',
             }"> {{ scoreboardPlayer?.level }}</span>
             <div v-if="scoreboardPlayer?.respawnTimeRemaining"
                 class="absolute flex top-0 left-0 h-full w-full justify-center items-center text-center">
@@ -171,7 +173,6 @@ const resourceColor = computed(() => {
 .level-text {
     position: absolute;
     bottom: -5px;
-    color: white;
     text-shadow: 0 0 2px rgba(0, 0, 0, 1);
 }
 
@@ -186,7 +187,7 @@ const resourceColor = computed(() => {
 }
 
 .death-timer-text {
-    color: red;
+    color: white;
     font-size: 24px;
     font-family: "Bebas Neue", sans-serif;
     text-shadow: 0 0 2px rgba(0, 0, 0, 1);
@@ -194,7 +195,8 @@ const resourceColor = computed(() => {
 
 .player-name-text {
     color: white;
-    font-size: 12px;
+    font-size: 14px;
+    letter-spacing: var(--tracking-wide);
     text-shadow: 0 0 2px rgba(0, 0, 0, 1);
     margin-left: 4px;
     margin-right: 4px;

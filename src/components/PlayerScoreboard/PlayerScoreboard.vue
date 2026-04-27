@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { playerUpdateEvent, Team } from '@bluebottle_gg/league-broadcast-client';
-import PlayerCamera from './PlayerCamera.vue';
+import { playerUpdateEvent } from '@bluebottle_gg/league-broadcast-client';
 import PlayerItems from './PlayerItems.vue';
 import { useIngameSelector } from '@/composables/useIngame';
 import PlayerInfo from './PlayerInfo.vue';
@@ -15,8 +14,8 @@ const scoreboard = useIngameSelector((s) => s.gameData.scoreboardBottom);
 const tabs = useIngameSelector((s) => s.gameData.tabs);
 const client = useClient();
 
-const levelUpQueue = useNotificationQueue();
-const itemBuyQueue = useNotificationQueue();
+const levelUpQueue = useNotificationQueue(2000);
+const itemBuyQueue = useNotificationQueue(4000);
 
 /**
  * Find which row index (0-4) and team a player belongs to,
@@ -52,7 +51,6 @@ const unsub = client.onIngameEvents({
 
         // Queue item-buy notifications
         if (event.boughtItems) {
-            console.log('Player bought items:', event.boughtItems);
             for (const item of event.boughtItems) {
                 if (item.cost < minItemValue) continue;
                 itemBuyQueue.enqueue({
@@ -77,8 +75,8 @@ onUnmounted(() => {
 <template>
     <Transition name="slide-down">
         <div id="player-scoreboard" v-if="scoreboard && tabs">
-            <PlayerCamera show :team="Team.Order" :scoreboard="scoreboard"
-                class="border rounded-t-sm border-r-0.5 border-b-0 border-white/55" />
+            <!-- <PlayerCamera show :team="Team.Order" :scoreboard="scoreboard"
+                class="border rounded-t-sm border-r-0.5 border-b-0 border-white/55" /> -->
             <div class="player-grid">
                 <div v-for="i in 5" :key="i" class="grid-item">
                     <PlayerItems style="grid-area: order-items"
@@ -90,8 +88,9 @@ onUnmounted(() => {
                         :level-up-level="levelUpQueue.getActive('Order', i - 1)?.level"
                         :level-up-visible="levelUpQueue.isVisible('Order', i - 1)"
                         :level-up-exiting="levelUpQueue.isExiting('Order', i - 1)" />
-                    <GoldDiff style="grid-area: gold-diff" :order-gold="scoreboard?.teams[0]?.players[i - 1]?.gold ?? 0"
-                        :chaos-gold="scoreboard?.teams[1]?.players[i - 1]?.gold ?? 0" />
+                    <GoldDiff style="grid-area: gold-diff"
+                        :order-gold="scoreboard?.teams[0]?.players[i - 1]?.totalGold ?? 0"
+                        :chaos-gold="scoreboard?.teams[1]?.players[i - 1]?.totalGold ?? 0" />
                     <PlayerInfo style="grid-area: chaos-info" :scoreboard-player="scoreboard?.teams[1]?.players[i - 1]"
                         :tab-player="tabs?.['Chaos']?.players[i - 1]" mirror
                         :level-up-level="levelUpQueue.getActive('Chaos', i - 1)?.level"
@@ -114,8 +113,8 @@ onUnmounted(() => {
                         :exiting="itemBuyQueue.isExiting('Chaos', i - 1)" mirror />
                 </div>
             </div>
-            <PlayerCamera show :team="Team.Chaos" :scoreboard="scoreboard"
-                class="border rounded-t-sm border-l-0.5 border-b-0 border-white/55" />
+            <!-- <PlayerCamera show :team="Team.Chaos" :scoreboard="scoreboard"
+                class="border rounded-t-sm border-l-0.5 border-b-0 border-white/55" /> -->
         </div>
     </Transition>
 </template>
@@ -124,7 +123,8 @@ onUnmounted(() => {
 <style lang="css" scoped>
 #player-scoreboard {
     display: grid;
-    grid-template-columns: 176px 1fr 176px;
+    /* grid-template-columns: 176px 1fr 176px; */
+    grid-template-columns: 1fr;
     grid-template-rows: 1fr;
 }
 

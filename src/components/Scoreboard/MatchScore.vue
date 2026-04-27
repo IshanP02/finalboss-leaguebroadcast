@@ -8,7 +8,6 @@ const props = defineProps<{
     mirror?: boolean
 }>()
 
-console.log(props)
 </script>
 
 <template>

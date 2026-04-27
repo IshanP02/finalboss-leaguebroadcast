@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { handleImageError, handleImageLoad } from '@/utils/imageUtils';
 import { computed } from 'vue';
-import FadeTransition from '../FadeTransition.vue';
+import FadeTransition from '../../transitions/FadeTransition.vue';
 
 
 const props = withDefaults(defineProps<{
@@ -14,7 +14,8 @@ const props = withDefaults(defineProps<{
     img: '',
     cooldown: 0,
     totalCooldown: 0,
-    showTimer: true
+    showTimer: true,
+    skilled: false
 })
 
 const cooldownPercent = computed(() => {

@@ -6,7 +6,7 @@ import TextWithIcon from "./TextWithIcon.vue";
 import Gold from "@/assets/gold.png";
 import Tower from "@/assets/tower.png";
 import { computed, ref, watch } from "vue";
-import FadeTransition from "../FadeTransition.vue";
+import FadeTransition from "../../transitions/FadeTransition.vue";
 import { handleImageError, handleImageLoad } from "@/utils/imageUtils";
 
 
@@ -55,19 +55,23 @@ watch(goldDiff, (diff) => {
     }
     // Between HIDE_THRESHOLD and SHOW_THRESHOLD: keep current state
 }, { immediate: true })
+
 </script>
 
 <template>
     <div class="w-full h-full flex items-center py-1 px-1 gap-4" :class="mirror ? 'flex-row-reverse' : 'flex-row'">
         <MatchScore class="self-stretch" :best-of="bestOf"
-            :fill-color="mirror ? 'var(--red-team-color)' : 'var(--blue-team-color)'" :wins="1" :mirror="mirror" />
+            :fill-color="mirror ? 'var(--red-team-color)' : 'var(--blue-team-color)'" :wins="team.seriesScore.wins"
+            :mirror="mirror" />
         <img v-if="team.teamIconUrl" :src="client.getCacheUrl(team.teamIconUrl)" alt="Team icon"
             class="max-h-4/5 w-auto " @error="handleImageError" @load="handleImageLoad" />
         <div class="flex flex-col" :style="{
             textAlign: mirror ? 'right' : 'left'
         }">
-            <p class="font-extrabold text-xl">{{ team.teamTag }}</p>
-            <p class="">{{ team.infoText }}</p>
+            <p class="font-extrabold text-xl" :style="{
+                'color': mirror ? 'var(--red-team-color)' : 'var(--blue-team-color)'
+            }">{{ team.teamTag }}</p>
+            <p class="font-bold overflow-clip whitespace-nowrap text-ellipsis text-sm">{{ team.infoText }}</p>
         </div>
         <TextWithIcon class="-translate-y-1" :class="mirror ? ['pr-2'] : ['pl-2']" :icon-url="Tower"
             :text="team.towers.toString()" :mirror="mirror" />
@@ -85,7 +89,7 @@ watch(goldDiff, (diff) => {
                 </div>
             </FadeTransition>
         </div>
-        <span class="text-3xl font-extrabold spcing tracking-tighter text-stretch-vertical capitalize"
+        <span class="text-3xl font-extrabold spcing tracking-tight text-stretch-vertical capitalize"
             :class="mirror ? 'mr-auto ml-2' : 'ml-auto mr-2 '">{{ team.kills
             }}</span>
 

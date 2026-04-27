@@ -1,4 +1,4 @@
-import { ref, onUnmounted, type Ref } from "vue";
+import { ref, onUnmounted, type Ref, watch } from "vue";
 import {
   GameState,
   shallowEqual,
@@ -53,6 +53,23 @@ export function useGameState(): Ref<GameState> {
   });
   onUnmounted(unsub);
   return state;
+}
+
+export function useIsInGame(): Ref<boolean> {
+  const gameState = useGameState();
+  const isInGame = ref(
+    gameState.value === GameState.Running ||
+      gameState.value === GameState.Paused ||
+      gameState.value === GameState.Mocking,
+  );
+  const w = watch(gameState, (newState) => {
+    isInGame.value =
+      newState === GameState.Running ||
+      newState === GameState.Paused ||
+      newState === GameState.Mocking;
+  });
+  onUnmounted(w);
+  return isInGame;
 }
 
 /** Reactive boolean for whether the in-game WebSocket is connected. */

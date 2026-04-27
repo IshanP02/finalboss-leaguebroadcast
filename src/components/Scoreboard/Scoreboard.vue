@@ -30,6 +30,7 @@ const gameTime = computed(() => {
 onMounted(async () => {
     seasonIcon.value = await client.api.season.getCurrentSeasonIcon();
 })
+const dateTimeNowString = new Date().toISOString();
 </script>
 
 <template>
@@ -39,8 +40,9 @@ onMounted(async () => {
                 <div class="top-row">
                     <TeamRow style="grid-column: 1;" :team="blue" :best-of="scoreboard.bestOf"
                         :enemy-team-gold="red.gold" />
-                    <img v-if="seasonIcon" :src="client.getCacheUrl(seasonIcon)" class="center-logo"
-                        @error="handleImageError" @load="handleImageLoad" />
+                    <!-- TODO: remove temporary cache busting -->
+                    <img v-if="seasonIcon" :src="client.getCacheUrl(seasonIcon, true) + `?ts=${dateTimeNowString}`"
+                        class="center-logo" @error="handleImageError" @load="handleImageLoad" />
                     <TeamRow style="grid-column: 3;" :team="red" :best-of="scoreboard.bestOf"
                         :enemy-team-gold="blue.gold" mirror />
                 </div>
@@ -165,7 +167,7 @@ onMounted(async () => {
     font-weight: bold;
     justify-self: center;
     align-self: center;
-    letter-spacing: var(--tracking-tighter);
+    letter-spacing: var(--tracking-tight);
 }
 
 .text-stretch-vertical {
