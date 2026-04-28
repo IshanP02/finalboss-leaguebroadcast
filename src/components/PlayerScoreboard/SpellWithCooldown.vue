@@ -49,15 +49,18 @@ const cooldownPercent = computed(() => {
 
 .cooldown-text {
     position: absolute;
-    height: 100%;
-    width: 100%;
+    inset: 0;
+    margin: 0;
     text-align: center;
     color: white;
     font-family: "Bebas Neue", sans-serif;
+    font-size: var(--cooldown-font-size, 1em);
+    line-height: 1;
     display: flex;
     justify-content: center;
     align-items: center;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    transform: translateY(2px);
 }
 
 @property --cooldown-fill {

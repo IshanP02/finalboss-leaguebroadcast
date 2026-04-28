@@ -9,15 +9,13 @@ import FadeTransition from "@/transitions/FadeTransition.vue";
 
 const props = withDefaults(defineProps<{
     mirror?: boolean;
-    data?: damageGraphEntry
+    data?: damageGraphEntry;
 }>(), {
     mirror: false,
     data: undefined
 });
 
 const client = useClient();
-
-console.log("Player entry data:", props.data);
 
 const spellD = computed(() => {
     if (!props.data || !props.data.abilities || !props.data.abilities[SpellSlotIndex.D]) return undefined;
@@ -81,15 +79,16 @@ const xpPct = computed(() => {
 <template>
 
     <!-- Main grid: ult + spells + splash + bars on left 2 cols, items on right col -->
-    <div class="main-grid" :class="mirror ? 'mirrored' : ''" style="transition: filter 0.5s ease" :style="{
+    <div class="main-grid" :class="mirror ? 'mirrored' : ''" :style="{
         filter: data?.respawnTime ? 'grayscale(1)' : 'grayscale(0)',
         transition: 'filter 0.5s ease'
     }">
         <!-- Ultimate icon: centered over the 2-col section -->
         <div class="area-ult flex justify-center py-1">
             <SpellWithCooldown v-if="spellR?.assets?.iconAsset" :cooldown="spellR?.cooldown"
-                :img="client.getCacheUrl(spellR?.assets?.iconAsset)" show-timer skilled
-                :total-cooldown="spellR?.totalCooldown" class="champion-icon rounded-full" />
+                :img="client.getCacheUrl(spellR?.assets?.iconAsset)" show-timer :skilled="spellR?.level > 0"
+                :total-cooldown="spellR?.totalCooldown" class="champion-icon rounded-full"
+                style="--cooldown-font-size: 32px" />
             <div v-else class="champion-icon rounded-full"></div>
         </div>
 
@@ -122,9 +121,10 @@ const xpPct = computed(() => {
             </div>
         </div>
 
-        <!-- Items: all in one column, v-for ready -->
+        <!-- Items: all in one column -->
         <div class="area-items flex flex-col">
-            <ItemWithCooldown v-for="(item, index) in data?.activeItems" :key="index" :item="item" class="item-slot " />
+            <ItemWithCooldown v-for="(item, index) in data?.activeItems" :key="index" :item="item" class="item-slot "
+                :show-stacks="false" />
         </div>
     </div>
 
@@ -148,7 +148,7 @@ const xpPct = computed(() => {
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-rows: auto auto auto auto;
     grid-template-areas:
-        "ult    ult    items"
+        "ult    ult    empty"
         "spell1 spell2 items"
         "splash splash items"
         "bars   bars   items";
@@ -156,7 +156,7 @@ const xpPct = computed(() => {
 
 .main-grid.mirrored {
     grid-template-areas:
-        "items ult    ult   "
+        "empty ult    ult   "
         "items spell1 spell2"
         "items splash splash"
         "items bars   bars  ";

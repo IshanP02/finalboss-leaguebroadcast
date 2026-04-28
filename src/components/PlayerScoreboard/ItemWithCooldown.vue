@@ -1,19 +1,20 @@
 <script setup lang="ts">
 import { useClient } from '@/client';
 import type { itemWithAsset } from '@bluebottle_gg/league-broadcast-client';
-import { ref } from 'vue';
 import FadeTransition from '../../transitions/FadeTransition.vue';
 import { handleImageError, handleImageLoad } from '@/utils/imageUtils';
 
 
 defineOptions({ inheritAttrs: false })
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     item?: itemWithAsset,
-    visionScore?: number
-}>();
+    visionScore?: number,
+    showStacks?: boolean
+}>(), {
+    showStacks: true
+});
 
-const imageLoaded = ref(false)
 const client = useClient();
 
 function getItemIcon(item: itemWithAsset): string {
@@ -103,16 +104,16 @@ function getStacks() {
                 </div>
             </div>
 
-            <span v-if="visionScore === undefined" class="item-count">{{ getItemText(item) }}</span>
+            <span v-if="showStacks && visionScore === undefined" class="item-count">{{ getItemText(item) }}</span>
 
             <!-- VisionScore -->
             <FadeTransition>
-                <span class="vision-score" v-if="visionScore !== undefined">{{ getVisionScore() }}</span>
+                <span class="vision-score" v-if="showStacks && visionScore !== undefined">{{ getVisionScore() }}</span>
             </FadeTransition>
 
             <!-- Trinket Usages -->
             <FadeTransition>
-                <span class="vision-stacks" v-if="visionScore !== undefined && getStacks() === 1">{{
+                <span class="vision-stacks" v-if="showStacks && visionScore !== undefined && getStacks() === 1">{{
                     getStacks() }}
                 </span>
             </FadeTransition>

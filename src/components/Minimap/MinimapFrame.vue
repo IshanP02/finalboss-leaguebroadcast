@@ -22,11 +22,11 @@ const isInGame = useIsInGame();
     pointer-events: none;
 
     /* The colour fill: diagonal blue → red */
-    background: linear-gradient(45deg,
-            rgba(0, 100, 255, 1) 0%,
-            rgba(0, 0, 0, 1) 25%,
-            rgba(0, 0, 0, 1) 75%,
-            rgba(220, 30, 30, 1) 100%);
+    background: linear-gradient(45deg in oklab,
+            var(--blue-team-color) 0%,
+            rgba(0, 0, 0, 1) 45%,
+            rgba(0, 0, 0, 1) 55%,
+            var(--red-team-color) 100%);
 
     /*
      * Mask: opaque around the edges, fully transparent in the center.

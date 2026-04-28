@@ -72,8 +72,8 @@ const gameTime = useIngameSelector((state) => state.gameData.gameTime);
   }
 
   * {
-    --blue-team-color: #3b82f6;
-    --red-team-color: #ef4444;
+    --blue-team-color: oklch(0.6231 0.188 259.81);
+    --red-team-color: oklch(0.6231 0.188 28.31);
   }
 }
 

@@ -15,7 +15,7 @@ const teamfight = useIngameSelector((s) => s.gameData.teamfightDamageOverview);
             <PlayerCamera show :team="Team.Order" :scoreboard="scoreboard" :teamfight="teamfight"
                 class="border rounded-t-sm border-r-0.5 border-b-0 border-white/55" />
             <div></div>
-            <PlayerCamera show :team="Team.Order" :scoreboard="scoreboard" :teamfight="teamfight"
+            <PlayerCamera show :team="Team.Chaos" :scoreboard="scoreboard" :teamfight="teamfight"
                 class="border rounded-t-sm border-r-0.5 border-b-0 border-white/55" />
         </div>
     </Transition>
