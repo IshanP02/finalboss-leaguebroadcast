@@ -1,40 +1,46 @@
 <script setup lang="ts">
 import { handleImageError, handleImageLoad } from '@/utils/imageUtils';
+import { getRemaining } from '@bluebottle_gg/league-broadcast-client';
+import { useIngameSelector } from '@/composables/useIngame';
 import { computed } from 'vue';
 import FadeTransition from '../../transitions/FadeTransition.vue';
 
 
 const props = withDefaults(defineProps<{
     img?: string,
-    cooldown?: number,
+    readyAt?: number,
     totalCooldown?: number,
     showTimer?: boolean,
     skilled?: boolean
 }>(), {
     img: '',
-    cooldown: 0,
+    readyAt: 0,
     totalCooldown: 0,
     showTimer: true,
     skilled: false
 })
 
+const gameTime = useIngameSelector((s) => s.gameData.gameTime);
+
+const remaining = computed(() => getRemaining(props.readyAt, gameTime.value));
+
 const cooldownPercent = computed(() => {
-    if (!props.cooldown || !props.totalCooldown) {
+    if (!props.readyAt || !props.totalCooldown) {
         return 0
     }
-    return Math.min(100, Math.max(0, ((props.totalCooldown - props.cooldown) / props.totalCooldown) * 100))
+    return Math.min(100, Math.max(0, (1 - remaining.value / props.totalCooldown) * 100))
 })
 
 </script>
 
 <template>
     <div class="relative overflow-hidden">
-        <div v-if="props.cooldown !== 0" class="absolute h-full w-full timer-fill"
+        <div v-if="remaining > 0" class="absolute h-full w-full timer-fill"
             :style="{ '--cooldown-fill': cooldownPercent * 3.6 + `deg` }">
         </div>
         <FadeTransition>
-            <p class="cooldown-text" v-if="showTimer && cooldown !== 0 && cooldown <= 10">{{
-                Math.ceil(cooldown) }}</p>
+            <p class="cooldown-text" v-if="showTimer && remaining > 0 && remaining <= 10">{{
+                Math.ceil(remaining) }}</p>
         </FadeTransition>
         <img v-if="skilled" class="h-full w-full object-cover block" :src="img" @error="handleImageError"
             @load="handleImageLoad" />

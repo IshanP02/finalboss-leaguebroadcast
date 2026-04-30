@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { playerUpdateEvent } from '@bluebottle_gg/league-broadcast-client';
+import { playerUpdateEvent, isPlayerDead } from '@bluebottle_gg/league-broadcast-client';
 import PlayerItems from './PlayerItems.vue';
 import { useIngameSelector } from '@/composables/useIngame';
 import PlayerInfo from './PlayerInfo.vue';
@@ -12,6 +12,7 @@ import { useNotificationQueue, type PlayerNotification } from '@/composables/use
 
 const scoreboard = useIngameSelector((s) => s.gameData.scoreboardBottom);
 const tabs = useIngameSelector((s) => s.gameData.tabs);
+const gameTime = useIngameSelector((s) => s.gameData.gameTime);
 const client = useClient();
 
 const levelUpQueue = useNotificationQueue(2000);
@@ -82,7 +83,7 @@ onUnmounted(() => {
                     <PlayerItems style="grid-area: order-items"
                         :scoreboard-player="scoreboard?.teams[0]?.players[i - 1]"
                         :tab-player="tabs?.['Order']?.players[i - 1]"
-                        :grayscale="!!scoreboard?.teams[0]?.players[i - 1]?.respawnTimeRemaining" />
+                        :grayscale="isPlayerDead(scoreboard?.teams[0]?.players[i - 1], gameTime)" />
                     <PlayerInfo style="grid-area: order-info" :scoreboard-player="scoreboard?.teams[0]?.players[i - 1]"
                         :tab-player="tabs?.['Order']?.players[i - 1]"
                         :level-up-level="levelUpQueue.getActive('Order', i - 1)?.level"
@@ -99,7 +100,7 @@ onUnmounted(() => {
                     <PlayerItems style="grid-area: chaos-items"
                         :scoreboard-player="scoreboard?.teams[1]?.players[i - 1]"
                         :tab-player="tabs?.['Chaos']?.players[i - 1]" mirror
-                        :grayscale="!!scoreboard?.teams[1]?.players[i - 1]?.respawnTimeRemaining" />
+                        :grayscale="isPlayerDead(scoreboard?.teams[1]?.players[i - 1], gameTime)" />
                     <!-- Single item-buy overlay per side, spanning both items+info columns -->
                     <ItemBuyNotification v-if="itemBuyQueue.getActive('Order', i - 1)"
                         :item-icon="itemBuyQueue.getActive('Order', i - 1)?.itemIcon"

@@ -10,6 +10,7 @@ import svgLoader from "vite-svg-loader";
 export default defineConfig({
   plugins: [tailwindcss(), vue(), webfontDownload(), svgLoader()],
   resolve: {
+    preserveSymlinks: true,
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },

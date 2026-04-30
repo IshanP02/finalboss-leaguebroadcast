@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IngameObjectiveType, type iObjectiveRespawnData } from '@bluebottle_gg/league-broadcast-client';
+import { IngameObjectiveType, getRemaining, type iObjectiveRespawnData } from '@bluebottle_gg/league-broadcast-client';
 import { computed } from 'vue';
 import Baron from '@/assets/baron/baron.png';
 import Herald from '@/assets/baron/herald.png';
@@ -29,7 +29,7 @@ const objectiveType = computed(() => {
 
 const respawnTimeRemaining = computed(() => {
     if (!props.objectiveData || props.objectiveData.timeAlive === undefined || props.gameTime === undefined) return undefined;
-    const time = props.objectiveData.timeAlive - props.gameTime;
+    const time = getRemaining(props.objectiveData.timeAlive, props.gameTime);
     return time > 0 ? time : 0;
 })
 const formattedRespawnTime = computed(() => {

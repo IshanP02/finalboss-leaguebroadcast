@@ -25,7 +25,7 @@ const props = defineProps<{
 
 function playerHasQuestComplete(player: ingameScoreboardBottomPlayerData) {
     if (props.isMocking) {
-        return player.respawnTimeRemaining
+        return player.respawnAt
     }
     const roleItem = getRoleQuest(player)
     if (!roleItem || !roleItem.stats || roleItem.stats.length < 3) {

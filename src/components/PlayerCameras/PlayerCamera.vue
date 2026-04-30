@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { useClient } from '@/client';
 import { handleImageError, handleImageLoad } from '@/utils/imageUtils';
-import { ingameDamageGraphData, ingameScoreboardBottomData, teamMember, type Team } from '@bluebottle_gg/league-broadcast-client';
+import { ingameDamageGraphData, ingameScoreboardBottomData, teamMember, type Team, isPlayerDead, getRemaining } from '@bluebottle_gg/league-broadcast-client';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { useIngameSelector } from '@/composables/useIngame';
 
 const props = defineProps<{
     show: boolean
@@ -12,6 +13,7 @@ const props = defineProps<{
 }>()
 
 const client = useClient();
+const gameTime = useIngameSelector((s) => s.gameData.gameTime);
 const playersOnTeam = ref<teamMember[]>([]);
 
 //rotate through players in x seconds intervals.
@@ -31,14 +33,14 @@ const isCurrentPlayerDead = computed(() => {
     const scoreboardTeam = props.scoreboard?.teams[props.team - 1];
     if (scoreboardTeam) {
         const playerInfo = scoreboardTeam.players.find(p => p.name === playerName);
-        return !!(playerInfo?.respawnTimeRemaining && playerInfo.respawnTimeRemaining > 0);
+        return isPlayerDead(playerInfo, gameTime.value);
     }
 
     // Fall back to teamfight data.
     const teamfightEntry = props.teamfight?.damageDealt.find(
         e => e.team === props.team && e.name === playerName
     );
-    return !!(teamfightEntry?.respawnTime && teamfightEntry.respawnTime > 0);
+    return getRemaining(teamfightEntry?.respawnAt, gameTime.value) > 0;
 })
 onMounted(async () => {
     try {

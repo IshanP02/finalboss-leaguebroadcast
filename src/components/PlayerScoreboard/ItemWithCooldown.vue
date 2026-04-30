@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { useClient } from '@/client';
+import { getItemCooldownFraction, isItemOnCooldown, getItemCooldownRemaining } from '@bluebottle_gg/league-broadcast-client';
 import type { itemWithAsset } from '@bluebottle_gg/league-broadcast-client';
 import FadeTransition from '../../transitions/FadeTransition.vue';
 import { handleImageError, handleImageLoad } from '@/utils/imageUtils';
+import { useIngameSelector } from '@/composables/useIngame';
 
 
 defineOptions({ inheritAttrs: false })
@@ -16,6 +18,7 @@ const props = withDefaults(defineProps<{
 });
 
 const client = useClient();
+const gameTime = useIngameSelector((s) => s.gameData.gameTime);
 
 function getItemIcon(item: itemWithAsset): string {
     return client.getCacheUrl(item.assetUrl)
@@ -46,21 +49,23 @@ function getItemText(item: itemWithAsset): string {
 }
 
 function getCooldownOverlayStyle(item: itemWithAsset) {
-    if (!item.cooldown || !item.maxCooldown) {
+    const fraction = getItemCooldownFraction(item, gameTime.value);
+    if (fraction >= 1) {
         return {}
     }
-    const elapsedAngle = 360 * (1 - item.cooldown / item.maxCooldown)
+    const elapsedAngle = 360 * fraction;
     return {
         background: `conic-gradient(from 0deg, transparent ${elapsedAngle}deg, rgba(0,0,0,0.6) ${elapsedAngle}deg)`
     }
 }
 
 function getCooldownRotationStyle(item: itemWithAsset) {
-    if (!item.cooldown || !item.maxCooldown) {
+    const fraction = getItemCooldownFraction(item, gameTime.value);
+    if (fraction >= 1) {
         return `rotate(0deg)`
     }
 
-    const rotation = 360 - (360 * (item.cooldown / item.maxCooldown))
+    const rotation = 360 - (360 * fraction);
     return `rotate(${rotation}deg)`
 }
 
@@ -95,7 +100,7 @@ function getStacks() {
             <img class="w-full h-full" :src="getItemIcon(item)" @error="handleImageError" @load="handleImageLoad" />
 
             <!-- Cooldown overlay + timer clipped to icon bounds -->
-            <div class="cooldown-clip" v-if="item.cooldown">
+            <div class="cooldown-clip" v-if="isItemOnCooldown(item, gameTime)">
                 <div :style="getCooldownOverlayStyle(item)" class="cooldown"></div>
                 <div class="cooldown-timer">
                     <div class="cooldown-timer-line"></div>

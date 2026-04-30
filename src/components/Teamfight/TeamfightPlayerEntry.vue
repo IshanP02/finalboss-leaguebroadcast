@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { useClient } from "@/client";
 import ProgressBar from "@/components/PlayerScoreboard/ProgressBar.vue";
-import { ResourceType, SpellSlotIndex, type damageGraphEntry } from "@bluebottle_gg/league-broadcast-client";
+import { ResourceType, SpellSlotIndex, type damageGraphEntry, getRemaining } from "@bluebottle_gg/league-broadcast-client";
 import SpellWithCooldown from "../PlayerScoreboard/SpellWithCooldown.vue";
 import { computed } from "vue";
+import { useIngameSelector } from "@/composables/useIngame";
 import ItemWithCooldown from "../PlayerScoreboard/ItemWithCooldown.vue";
 import FadeTransition from "@/transitions/FadeTransition.vue";
 
@@ -16,6 +17,9 @@ const props = withDefaults(defineProps<{
 });
 
 const client = useClient();
+const gameTime = useIngameSelector((s) => s.gameData.gameTime);
+
+const respawnRemaining = computed(() => getRemaining(props.data?.respawnAt, gameTime.value));
 
 const spellD = computed(() => {
     if (!props.data || !props.data.abilities || !props.data.abilities[SpellSlotIndex.D]) return undefined;
@@ -44,9 +48,9 @@ const resourcePct = computed(() => {
 
 const resourceColor = computed(() => {
     //resource type might be a string, so parse it to enum if needed
-    const resourceType = typeof props.data?.resource.type === "string"
+    const resourceType = typeof props.data?.resource?.type === "string"
         ? ResourceType[props.data.resource.type as keyof typeof ResourceType]
-        : props.data?.resource.type;
+        : props.data?.resource?.type;
 
     switch (resourceType) {
         case ResourceType.mana: return "#1d4ed8";
@@ -80,12 +84,12 @@ const xpPct = computed(() => {
 
     <!-- Main grid: ult + spells + splash + bars on left 2 cols, items on right col -->
     <div class="main-grid" :class="mirror ? 'mirrored' : ''" :style="{
-        filter: data?.respawnTime ? 'grayscale(1)' : 'grayscale(0)',
+        filter: respawnRemaining > 0 ? 'grayscale(1)' : 'grayscale(0)',
         transition: 'filter 0.5s ease'
     }">
         <!-- Ultimate icon: centered over the 2-col section -->
         <div class="area-ult flex justify-center py-1">
-            <SpellWithCooldown v-if="spellR?.assets?.iconAsset" :cooldown="spellR?.cooldown"
+            <SpellWithCooldown v-if="spellR?.assets?.iconAsset" :ready-at="spellR?.readyAt"
                 :img="client.getCacheUrl(spellR?.assets?.iconAsset)" show-timer :skilled="spellR?.level > 0"
                 :total-cooldown="spellR?.totalCooldown" class="champion-icon rounded-full"
                 style="--cooldown-font-size: 32px" />
@@ -93,16 +97,16 @@ const xpPct = computed(() => {
         </div>
 
         <!-- Spell icons: top-left 2 cells -->
-        <SpellWithCooldown :cooldown="spellD?.cooldown" :img="client.getCacheUrl(spellD?.assets?.iconAsset)" show-timer
+        <SpellWithCooldown :ready-at="spellD?.readyAt" :img="client.getCacheUrl(spellD?.assets?.iconAsset)" show-timer
             skilled :total-cooldown="spellD?.totalCooldown" class="spell-icon area-spell1" />
-        <SpellWithCooldown :cooldown="spellF?.cooldown" :img="client.getCacheUrl(spellF?.assets?.iconAsset)" show-timer
+        <SpellWithCooldown :ready-at="spellF?.readyAt" :img="client.getCacheUrl(spellF?.assets?.iconAsset)" show-timer
             skilled :total-cooldown="spellF?.totalCooldown" class="spell-icon area-spell2" />
 
         <!-- Splash portrait -->
         <div class="player-portrait bg-zinc-600 area-splash">
             <img :src="client.getCacheUrl(data?.champion?.squareImg)" class="object-cover w-full h-full" />
             <FadeTransition>
-                <span v-if="data?.respawnTime" class="respawn-timer">{{ data?.respawnTime.toFixed(0) }}</span>
+                <span v-if="respawnRemaining > 0" class="respawn-timer">{{ Math.ceil(respawnRemaining) }}</span>
             </FadeTransition>
         </div>
 

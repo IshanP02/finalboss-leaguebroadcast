@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ResourceType, SpellSlotIndex, tabsStyle, type ingameScoreboardBottomPlayerData, type tabPlayer } from '@bluebottle_gg/league-broadcast-client';
+import { ResourceType, SpellSlotIndex, tabsStyle, type ingameScoreboardBottomPlayerData, type tabPlayer, getRespawnRemaining, isPlayerDead } from '@bluebottle_gg/league-broadcast-client';
 import { computed } from 'vue';
 import SpellWithCooldown from './SpellWithCooldown.vue';
 import { useClient } from '@/client';
 import ProgressBar from './ProgressBar.vue';
 import LevelUpNotification from './LevelUpNotification.vue';
+import { useIngameSelector } from '@/composables/useIngame';
 
 const props = defineProps<{
     scoreboardPlayer?: ingameScoreboardBottomPlayerData
@@ -16,6 +17,7 @@ const props = defineProps<{
 }>()
 
 const client = useClient();
+const gameTime = useIngameSelector((s) => s.gameData.gameTime);
 
 const shutdown = computed(() => {
     if (!props.scoreboardPlayer) return undefined;
@@ -27,9 +29,9 @@ const shutdown = computed(() => {
 })
 
 const respawnTimeRemaining = computed(() => {
-    if (!props.scoreboardPlayer || !props.scoreboardPlayer.respawnTimeRemaining)
-        return undefined;
-    return Math.ceil(props.scoreboardPlayer.respawnTimeRemaining);
+    if (!props.scoreboardPlayer) return undefined;
+    const remaining = getRespawnRemaining(props.scoreboardPlayer, gameTime.value);
+    return remaining > 0 ? Math.ceil(remaining) : undefined;
 })
 
 const ultimate = computed(() => {
@@ -57,7 +59,7 @@ const playerNameNoTag = computed(() => {
     return name;
 })
 
-const isDead = computed(() => !!props.scoreboardPlayer?.respawnTimeRemaining)
+const isDead = computed(() => isPlayerDead(props.scoreboardPlayer, gameTime.value))
 
 const resourceColor = computed(() => {
     //resource type might be a string, so parse it to enum if needed
@@ -89,10 +91,10 @@ const resourceColor = computed(() => {
         <div class="relative overflow-hidden">
             <div class="absolute inset-0 flex flex-col items-center justify-around gap-0.5">
                 <SpellWithCooldown class="w-full aspect-square flex-1 min-h-0 max-h-[50%]"
-                    :cooldown="summonerOne?.cooldown" :total-cooldown="summonerOne?.totalCooldown"
+                    :ready-at="summonerOne?.readyAt" :total-cooldown="summonerOne?.totalCooldown"
                     :img="client.getCacheUrl(summonerOne?.assets?.iconAsset)" show-timer skilled />
                 <SpellWithCooldown class="w-full aspect-square flex-1 min-h-0 max-h-[50%]"
-                    :cooldown="summonerTwo?.cooldown" :total-cooldown="summonerTwo?.totalCooldown"
+                    :ready-at="summonerTwo?.readyAt" :total-cooldown="summonerTwo?.totalCooldown"
                     :img="client.getCacheUrl(summonerTwo?.assets?.iconAsset)" show-timer skilled />
             </div>
         </div>
@@ -105,8 +107,7 @@ const resourceColor = computed(() => {
                 left: mirror ? '0' : 'auto',
                 color: isDead ? '#E2B793' : 'white',
             }"> {{ scoreboardPlayer?.level }}</span>
-            <div v-if="scoreboardPlayer?.respawnTimeRemaining"
-                class="absolute flex top-0 left-0 h-full w-full justify-center items-center text-center">
+            <div v-if="isDead" class="absolute flex top-0 left-0 h-full w-full justify-center items-center text-center">
                 <p class="death-timer-text">{{ respawnTimeRemaining }}</p>
             </div>
             <LevelUpNotification :level="levelUpLevel ?? undefined" :visible="levelUpVisible ?? false"
@@ -116,7 +117,7 @@ const resourceColor = computed(() => {
             <div class="relative flex justify-start items-center" :class="mirror ? 'flex-row-reverse' : 'flex-row'">
                 <SpellWithCooldown class="h-6 w-6 shrink-0 rounded-full aspect-square border border-white"
                     style="background: radial-gradient(circle at center, transparent, rgba(0, 0, 0, 0.7) 70%)"
-                    :cooldown="ultimate?.cooldown" :total-cooldown="ultimate?.totalCooldown"
+                    :ready-at="ultimate?.readyAt" :total-cooldown="ultimate?.totalCooldown"
                     :img="client.getCacheUrl(ultimate?.assets?.iconAsset)" show-timer
                     :skilled="(ultimate?.level ?? 0) > 0" />
                 <span class="player-name-text" :style="{
