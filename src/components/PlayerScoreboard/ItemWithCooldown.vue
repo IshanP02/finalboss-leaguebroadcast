@@ -25,16 +25,16 @@ function getItemIcon(item: itemWithAsset): string {
 }
 
 function getItemText(item: itemWithAsset): string {
-    if (item.count === 1 && item.stacks === 0) {
+    if (item.count === 1 && item.charges === 0) {
         return ""
     }
 
-    if (item.stacks && item.stacks > 0 && item.stacks < 20000) {
+    if (item.charges && item.charges > 0) {
 
-        if (item.stacks >= 1000) {
-            return (item.stacks / 1000).toFixed(1) + 'k'
+        if (item.charges >= 1000) {
+            return (item.charges / 1000).toFixed(1) + 'k'
         }
-        return Math.floor(item.stacks).toString()
+        return Math.floor(item.charges).toString()
     }
 
     if (item.count === 1) {
