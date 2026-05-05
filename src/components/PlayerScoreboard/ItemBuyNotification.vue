@@ -73,7 +73,7 @@ defineProps<{
 
 .item-name {
     font-family: "Bebas Neue", sans-serif;
-    font-size: 14px;
+    font-size: 24px;
     color: white;
     text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
     white-space: nowrap;

@@ -31,8 +31,11 @@ function playerHasQuestComplete(player: ingameScoreboardBottomPlayerData) {
     if (!roleItem || !roleItem.stats || roleItem.stats.length < 3) {
         return false;
     }
-    const current = roleItem.stats[1] ?? 0;
-    const max = roleItem.stats[2] ?? 1;
+    if (roleItem.id === 1220) {
+        return true;
+    }
+    const current = roleItem.stats[0] ?? 0;
+    const max = roleItem.stats[1] ?? 1;
     const value = Math.min(100, Math.max(0, (current / max) * 100));
     return value >= 100;
 }

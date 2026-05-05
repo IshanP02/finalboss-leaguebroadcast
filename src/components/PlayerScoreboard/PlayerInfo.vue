@@ -50,16 +50,21 @@ const summonerTwo = computed(() => {
 
 const playerNameNoTag = computed(() => {
     if (!props.scoreboardPlayer) return "";
-    const name = props.scoreboardPlayer.name;
-    if (!name) return props.scoreboardPlayer.champion?.alias;
-    const tagIndex = name.indexOf("#");
-    if (tagIndex !== -1) {
-        return name.substring(0, tagIndex);
-    }
-    return name;
+    const name = props.scoreboardPlayer.displayName;
+    if (name) return name;
+    return props.scoreboardPlayer.champion?.alias;
 })
 
 const isDead = computed(() => isPlayerDead(props.scoreboardPlayer, gameTime.value))
+
+const buffBorderClass = computed(() => {
+    const hasBaron = props.tabPlayer?.hasBaron ?? false;
+    const hasElder = props.tabPlayer?.hasElder ?? false;
+    if (hasBaron && hasElder) return 'buff-both';
+    if (hasBaron) return 'buff-baron';
+    if (hasElder) return 'buff-elder';
+    return '';
+})
 
 const resourceColor = computed(() => {
     //resource type might be a string, so parse it to enum if needed
@@ -98,7 +103,7 @@ const resourceColor = computed(() => {
                     :img="client.getCacheUrl(summonerTwo?.assets?.iconAsset)" show-timer skilled />
             </div>
         </div>
-        <div class="relative w-full h-full p-0.5">
+        <div class="relative w-full h-full p-0.5" :class="buffBorderClass">
             <img id="player-champion-icon" :src="client.getCacheUrl(scoreboardPlayer?.champion?.squareImg)" />
             <span class="shutdown-text"> {{ shutdown }}</span>
             <span class="level-text" :style="{
@@ -256,5 +261,41 @@ const resourceColor = computed(() => {
 #player-info-container.is-dead .shutdown-text,
 #player-info-container.is-dead .level-text {
     filter: grayscale(1);
+}
+
+.buff-baron::before,
+.buff-elder::before,
+.buff-both::before {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.buff-baron::before {
+    border: 3px solid rgba(155, 48, 255, 0.4);
+    animation: baron-pulse 1.5s ease-in-out infinite;
+}
+
+.buff-elder::before {
+    border: 3px solid #c0c0c0;
+}
+
+.buff-both::before {
+    inset: -1px;
+    background: conic-gradient(#9b30ff, #c0c0c0, #9b30ff, #c0c0c0, #9b30ff);
+    animation: swirl 2s linear infinite;
+    mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+}
+
+@keyframes baron-pulse {
+    0%, 100% { border-color: rgba(155, 48, 255, 0.3); }
+    50% { border-color: rgba(155, 48, 255, 1); }
+}
+
+@keyframes swirl {
+    to { transform: rotate(360deg); }
 }
 </style>
