@@ -37,3 +37,6 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+ai-memory.db
+ai-memory.db-shm
+ai-memory.db-wal
