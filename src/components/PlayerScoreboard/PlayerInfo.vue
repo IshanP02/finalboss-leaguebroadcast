@@ -66,6 +66,14 @@ const buffBorderClass = computed(() => {
     return '';
 })
 
+const xpProgress = computed(() => {
+    if (!props.tabPlayer) return 0;
+    const previousLevel = props.tabPlayer.experience.previousLevel
+    const nextLevel = props.tabPlayer.experience.nextLevel
+    const current = props.tabPlayer.experience.current;
+    return (current - previousLevel) / (nextLevel - previousLevel) * 100;
+})
+
 const resourceColor = computed(() => {
     //resource type might be a string, so parse it to enum if needed
     const resourceType = typeof props.tabPlayer?.resource.type === "string"
@@ -132,8 +140,7 @@ const resourceColor = computed(() => {
 
             <div class="health-grid" :class="mirror ? 'ml-auto' : ''">
                 <!-- XP Bar-->
-                <ProgressBar class="w-full" :fill-color="'purple'" :mirror="mirror"
-                    :progress-pct="(tabPlayer?.experience.current ?? 0) / (tabPlayer?.experience.nextLevel ?? 1) * 100" />
+                <ProgressBar class="w-full" :fill-color="'purple'" :mirror="mirror" :progress-pct="xpProgress" />
                 <!-- Health Bar-->
                 <ProgressBar class="w-full" :fill-color="'green'" :mirror="mirror"
                     :progress-pct="(tabPlayer?.health.current ?? 0) / (tabPlayer?.health.max ?? 1) * 100" />
@@ -291,11 +298,20 @@ const resourceColor = computed(() => {
 }
 
 @keyframes baron-pulse {
-    0%, 100% { border-color: rgba(155, 48, 255, 0.3); }
-    50% { border-color: rgba(155, 48, 255, 1); }
+
+    0%,
+    100% {
+        border-color: rgba(155, 48, 255, 0.3);
+    }
+
+    50% {
+        border-color: rgba(155, 48, 255, 1);
+    }
 }
 
 @keyframes swirl {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 </style>
