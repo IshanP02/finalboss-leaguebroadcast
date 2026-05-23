@@ -36,7 +36,7 @@ const dateTimeNowString = new Date().toISOString();
 <template>
     <Transition name="scoreboard" :duration="{ enter: 850, leave: 750 }">
         <div v-if="scoreboard && blue && red" class="scoreboard">
-            <div class="row-clip">
+            <div class="row-clip theme-panel">
                 <div class="top-row">
                     <TeamRow style="grid-column: 1;" :team="blue" :best-of="scoreboard.bestOf"
                         :enemy-team-gold="red.gold" />
@@ -119,6 +119,7 @@ const dateTimeNowString = new Date().toISOString();
     display: grid;
     grid-template-columns: 1fr 40px 1fr;
     grid-template-rows: 80px;
+    position: relative;
 }
 
 .team-row {
@@ -140,11 +141,22 @@ const dateTimeNowString = new Date().toISOString();
 }
 
 .center-logo {
-    width: 32px;
-    height: 32px;
+    width: 48px;
+    height: 48px;
+
     justify-self: center;
     align-self: center;
+
     grid-column: 2;
+
+    position: relative;
+    z-index: 2;
+
+    object-fit: contain;
+
+    filter:
+        drop-shadow(0 0 4px rgba(0,0,0,0.9))
+        drop-shadow(0 0 8px rgba(255,38,63,0.22));
 }
 
 .bottom-row {
@@ -184,4 +196,6 @@ const dateTimeNowString = new Date().toISOString();
     transform: scale(1, 1.5);
     /* Standard syntax */
 }
+
+
 </style>

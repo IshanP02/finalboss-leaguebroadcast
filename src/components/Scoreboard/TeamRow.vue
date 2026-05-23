@@ -79,7 +79,7 @@ watch(goldDiff, (diff) => {
             <TextWithIcon :class="mirror ? ['pr-2'] : ['pl-2']" :icon-url="Gold" :text="formattedGold"
                 :mirror="mirror" />
             <FadeTransition name="fade" mode="out-in">
-                <div id="gold-diff" v-if="showGoldDiff" class="absolute top-7 w-10 h-6 text-center" :style="{
+                <div id="gold-diff" v-if="showGoldDiff" class="absolute top-1 w-10 h-6 text-center" :style="{
                     'background-color': mirror ? 'var(--red-team-color)' : 'var(--blue-team-color)',
                     'left': mirror ? 'auto' : '40px',
                     color: 'white',
@@ -97,18 +97,101 @@ watch(goldDiff, (diff) => {
 </template>
 
 <style lang="css" scoped>
+:deep(.text-with-icon),
+:deep(span),
+p {
+    color: var(--theme-text);
+    text-shadow: 0 0 4px black;
+}
+
+.w-full {
+    position: relative;
+    overflow: hidden;
+    background:
+        linear-gradient(
+            90deg,
+            rgba(177, 18, 38, 0.24),
+            rgba(5, 5, 7, 0.95) 28%,
+            rgba(5, 5, 7, 1) 70%,
+            rgba(177, 18, 38, 0.14)
+        );
+    border-inline-start: 3px solid var(--theme-red);
+    box-shadow:
+        inset 0 0 14px rgba(255, 38, 63, 0.14),
+        inset 0 -1px 0 rgba(255, 38, 63, 0.22);
+}
+
+.w-full.flex-row-reverse {
+    background:
+        linear-gradient(
+            270deg,
+            rgba(177, 18, 38, 0.24),
+            rgba(5, 5, 7, 0.95) 28%,
+            rgba(5, 5, 7, 1) 70%,
+            rgba(177, 18, 38, 0.14)
+        );
+    border-inline-start: none;
+    border-inline-end: 3px solid var(--theme-red-bright);
+}
+
+.w-full::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        repeating-linear-gradient(
+            -16deg,
+            rgba(255, 255, 255, 0.035) 0px,
+            rgba(255, 255, 255, 0.035) 1px,
+            transparent 1px,
+            transparent 8px
+        );
+    opacity: 0.55;
+}
+
+img {
+    filter: drop-shadow(0 0 6px rgba(255, 38, 63, 0.35));
+    z-index: 1;
+}
+
+p,
+span,
+:deep(*) {
+    position: relative;
+    z-index: 1;
+}
+
+p.font-extrabold {
+    color: var(--theme-red-bright) !important;
+    text-shadow:
+        0 0 4px black,
+        0 0 10px rgba(255, 38, 63, 0.55);
+    letter-spacing: 0.04em;
+}
+
+p.font-bold {
+    color: var(--theme-muted);
+    letter-spacing: 0.03em;
+}
+
+.text-3xl {
+    color: var(--theme-text);
+    text-shadow:
+        0 0 4px black,
+        0 0 12px rgba(255, 38, 63, 0.65);
+}
+
+#gold-diff {
+    background: linear-gradient(90deg, var(--theme-red-dark), var(--theme-red-bright)) !important;
+    border: 1px solid var(--theme-border);
+    box-shadow: 0 0 10px rgba(255, 38, 63, 0.45);
+    clip-path: polygon(8% 0, 100% 0, 92% 100%, 0% 100%);
+}
+
 .text-stretch-vertical {
     font-family: 'Bebas Neue';
     display: inline-block;
-    -webkit-transform: scale(1, 1.5);
-    /* Safari and Chrome */
-    -moz-transform: scale(1, 1.5);
-    /* Firefox */
-    -ms-transform: scale(1, 1.5);
-    /* IE 9 */
-    -o-transform: scale(1, 1.5);
-    /* Opera */
     transform: scale(1, 1.5);
-    /* Standard syntax */
 }
 </style>

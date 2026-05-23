@@ -11,6 +11,7 @@ import SupportIcon from '@/assets/lane/sup-placeholder-cropped.svg?url';
 
 import LeagueBroadcastLogo from '@/assets/leaguebroadcast-logo_text-color-bright_outline.png';
 import { useClient } from '@/client';
+import { skinRotationIndex } from "@/composables/useSkinRotation";
 
 const props = defineProps<{
     mirror?: boolean
@@ -23,9 +24,9 @@ const client = useClient();
 const teamData = computed(() => {
     if (!skinData.value?.teams) return null
     return skinData.value.teams[props.team - 1] // team is 1-based index, since team 0 is "none"
-})
+})  
 
-const currentPlayerIndex = ref(0)
+const currentPlayerIndex = skinRotationIndex
 let rotationInterval: ReturnType<typeof setInterval> | null = null
 
 const currentPlayer = computed<ingameSkinDisplayPlayerData | undefined>(() => {

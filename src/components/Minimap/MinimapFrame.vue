@@ -13,50 +13,103 @@ const isInGame = useIsInGame();
 </template>
 
 <style scoped>
-/*
- * Single element — diagonal blue (top-left) → red (bottom-right) gradient,
- * masked so only the border ring is visible and the center is fully transparent.
- * Safe for OBS browser-source overlays with no chroma key required.
- */
 .minimap-frame {
     pointer-events: none;
+    position: relative;
 
-    /* The colour fill: diagonal blue → red */
-    background: linear-gradient(45deg in oklab,
-            var(--blue-team-color) 0%,
-            rgba(0, 0, 0, 1) 45%,
-            rgba(0, 0, 0, 1) 55%,
-            var(--red-team-color) 100%);
+    /* Main border texture */
+    background:
+        linear-gradient(
+            135deg,
+            rgba(70, 125, 255, 0.9) 0%,
+            rgba(5, 5, 7, 1) 35%,
+            rgba(5, 5, 7, 1) 65%,
+            rgba(255, 38, 63, 0.9) 100%
+        ),
+        repeating-linear-gradient(
+            -16deg,
+            rgba(255,255,255,0.04) 0px,
+            rgba(255,255,255,0.04) 1px,
+            transparent 1px,
+            transparent 8px
+        );
 
     /*
-     * Mask: opaque around the edges, fully transparent in the center.
-     * The inner rectangle is defined as a % inset — adjust to taste.
-     * Two mask layers combined with 'exclude' punch the hole:
-     *   layer 1 — full white rectangle (show everything)
-     *   layer 2 — white rectangle inset by --border-width (subtract the center)
-     * mask-composite: exclude = layer1 XOR layer2 → only the ring remains.
+     * Border-only mask
      */
     --border-width: 10px;
+
     mask-image:
         linear-gradient(#fff 0 0),
         linear-gradient(#fff 0 0);
+
     mask-size:
         100% 100%,
-        calc(100% - var(--border-width) * 2) calc(100% - var(--border-width) * 2);
+        calc(100% - var(--border-width) * 2)
+        calc(100% - var(--border-width) * 2);
+
     mask-position:
         center,
         center;
+
     mask-repeat: no-repeat, no-repeat;
     mask-composite: exclude;
+
     -webkit-mask-image:
         linear-gradient(#fff 0 0),
         linear-gradient(#fff 0 0);
+
     -webkit-mask-size:
         100% 100%,
-        calc(100% - var(--border-width) * 2) calc(100% - var(--border-width) * 2);
+        calc(100% - var(--border-width) * 2)
+        calc(100% - var(--border-width) * 2);
+
     -webkit-mask-position: center, center;
     -webkit-mask-repeat: no-repeat, no-repeat;
     -webkit-mask-composite: xor;
+
     border: 2px solid rgba(0, 0, 0, 1);
+
+    filter:
+        drop-shadow(0 0 12px rgba(255, 38, 63, 0.22))
+        drop-shadow(0 0 12px rgba(70, 125, 255, 0.18))
+        drop-shadow(0 0 24px rgba(0, 0, 0, 0.85));
+}
+
+/* Inner grime overlay */
+.minimap-frame::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+
+    background:
+        radial-gradient(
+            circle at top left,
+            rgba(255, 38, 63, 0.16),
+            transparent 30%
+        ),
+        radial-gradient(
+            circle at bottom right,
+            rgba(70, 125, 255, 0.14),
+            transparent 30%
+        );
+
+    opacity: 0.9;
+}
+
+/* Metallic highlight edge */
+.minimap-frame::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+
+    border:
+        1px solid rgba(255,255,255,0.08);
+
+    box-shadow:
+        inset 0 0 12px rgba(255,255,255,0.04),
+        inset 0 0 20px rgba(255, 38, 63, 0.08);
 }
 </style>

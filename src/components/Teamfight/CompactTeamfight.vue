@@ -112,6 +112,7 @@ const onRedEnter = makeEnterHandler(
 .teamfight-logo {
     margin-top: auto;
     height: 100px;
+    width: 0px;
 }
 
 .slide-down-enter-active {

@@ -8,6 +8,8 @@ import ItemBuyNotification from './ItemBuyNotification.vue';
 import { useClient } from '@/client';
 import { onUnmounted } from 'vue';
 import { useNotificationQueue, type PlayerNotification } from '@/composables/useNotificationQueue';
+import { Team } from '@bluebottle_gg/league-broadcast-client';
+import ScoreboardSkinBox from './ScoreboardSkinBox.vue';
 
 
 const scoreboard = useIngameSelector((s) => s.gameData.scoreboardBottom);
@@ -76,8 +78,8 @@ onUnmounted(() => {
 <template>
     <Transition name="slide-down">
         <div id="player-scoreboard" v-if="scoreboard && tabs">
-            <!-- <PlayerCamera show :team="Team.Order" :scoreboard="scoreboard"
-                class="border rounded-t-sm border-r-0.5 border-b-0 border-white/55" /> -->
+            <PlayerCamera show :team="Team.Order" :scoreboard="scoreboard"
+                class="border rounded-t-sm border-r-0.5 border-b-0 border-white/55" />
             <div class="player-grid">
                 <div v-for="i in 5" :key="i" class="grid-item">
                     <PlayerItems style="grid-area: order-items"
@@ -114,8 +116,8 @@ onUnmounted(() => {
                         :exiting="itemBuyQueue.isExiting('Chaos', i - 1)" mirror />
                 </div>
             </div>
-            <!-- <PlayerCamera show :team="Team.Chaos" :scoreboard="scoreboard"
-                class="border rounded-t-sm border-l-0.5 border-b-0 border-white/55" /> -->
+            <PlayerCamera show :team="Team.Chaos" :scoreboard="scoreboard"
+                class="border rounded-t-sm border-l-0.5 border-b-0 border-white/55" />
         </div>
     </Transition>
 </template>
@@ -130,17 +132,24 @@ onUnmounted(() => {
 }
 
 .player-grid {
-    background-color: rgba(0, 0, 0, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    border-bottom: 0px;
-    border-radius: 8px 8px 0 0;
-    display: grid;
-    grid-template-rows: repeat(5, minmax(0, 1fr));
-    grid-template-columns: 1fr;
+  background:
+    linear-gradient(135deg, rgba(177, 18, 38, 0.16), transparent 35%),
+    repeating-linear-gradient(
+      -12deg,
+      rgba(255, 255, 255, 0.035) 0px,
+      rgba(255, 255, 255, 0.035) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    var(--theme-bg);
+  border: 1px solid var(--theme-border);
+  box-shadow:
+    inset 0 0 18px rgba(255, 38, 63, 0.12),
+    0 0 18px rgba(0, 0, 0, 0.65);
 }
 
 .player-grid .grid-item {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.55);
+    border-bottom: 1px solid rgba(255, 38, 63, 0.28);
     overflow: hidden;
     min-height: 0;
     position: relative;
@@ -148,7 +157,6 @@ onUnmounted(() => {
     grid-template-rows: minmax(0, 1fr);
     grid-template-columns: 215px 250px 1fr 250px 215px;
     grid-template-areas: "order-items order-info gold-diff chaos-info chaos-items";
-
 }
 
 .player-grid .grid-item:last-child {

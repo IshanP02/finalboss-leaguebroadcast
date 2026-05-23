@@ -167,7 +167,7 @@ const resourceColor = computed(() => {
     gap: 0px;
     padding: 4px;
     border-left: 1px solid rgba(255, 255, 255, 0.55);
-    overflow: hidden;
+    overflow: visible;
 }
 
 #player-info-container.mirror {

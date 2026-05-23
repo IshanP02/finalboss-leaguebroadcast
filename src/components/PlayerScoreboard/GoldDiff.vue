@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import FadeTransition from '../../transitions/FadeTransition.vue';
 
 const props = defineProps<{
     orderGold: number
@@ -24,24 +23,17 @@ const leadingTeam = computed(() => {
 
 <template>
     <div class="gold-diff">
-        <!-- Order (blue) indicator: bracket pointing left -->
-        <FadeTransition>
-            <svg v-if="leadingTeam === 'order'" class="indicator indicator-order" viewBox="-0.5 -0.5 10 30.5"
-                xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" preserveAspectRatio="none">
-                <polygon points="8,0 4,0 4,10 0,15 4,20 4,30 8,30, 8,0" fill="var(--blue-team-color)"
-                    stroke="rgba(0,0,0,1)" stroke-width="1" stroke-linejoin="miter" />
-            </svg>
-        </FadeTransition>
+        <div
+            v-if="leadingTeam === 'order'"
+            class="lead-arrow lead-arrow-order"
+        />
 
         <span class="gold-value">{{ formattedDiff }}</span>
-        <!-- Chaos (red) indicator: bracket pointing right -->
-        <FadeTransition>
-            <svg v-if="leadingTeam === 'chaos'" class="indicator indicator-chaos" viewBox="-0.5 -0.5 10 30.5"
-                xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" preserveAspectRatio="none">
-                <polygon points="0,0 4,0 4,10 8,15 4,20 4,30 0,30 0,0" fill="var(--red-team-color)"
-                    stroke="rgba(0,0,0,1)" stroke-width="1" stroke-linejoin="miter" />
-            </svg>
-        </FadeTransition>
+
+        <div
+            v-if="leadingTeam === 'chaos'"
+            class="lead-arrow lead-arrow-chaos"
+        />
     </div>
 </template>
 
@@ -51,11 +43,18 @@ const leadingTeam = computed(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-left: 1px solid rgba(255, 255, 255, 0.55);
-    border-right: 1px solid rgba(255, 255, 255, 0.55);
+
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+
     overflow: visible;
-    /* Add subtle drop shadow for better visibility */
-    text-shadow: 0 0 2px rgba(0, 0, 0, 1);
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255,255,255,0.02),
+            rgba(0,0,0,0.08)
+        );
 }
 
 .gold-value {
@@ -63,21 +62,68 @@ const leadingTeam = computed(() => {
     font-size: 24px;
     line-height: 24px;
     color: white;
-    z-index: 1;
-}
 
-.indicator {
-    position: absolute;
-    width: 10px;
-    height: 48px;
+    text-shadow:
+        0 0 4px black,
+        0 0 8px rgba(255,255,255,0.08);
+
     z-index: 2;
 }
 
-.indicator-order {
-    left: -3px;
+.lead-arrow {
+    position: absolute;
+
+    top: 50%;
+
+    width: 8px;
+    height: 18px;
+
+    transform: translateY(-50%);
+
+    z-index: 3;
+
+    opacity: 0.95;
 }
 
-.indicator-chaos {
-    right: -3px;
+/* Blue side lead */
+.lead-arrow-order {
+    left: 4px;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(120,170,255,1),
+            rgba(70,125,255,1)
+        );
+
+    clip-path: polygon(
+        100% 0,
+        0 50%,
+        100% 100%
+    );
+
+    box-shadow:
+        0 0 6px rgba(70,125,255,0.55);
+}
+
+/* Red side lead */
+.lead-arrow-chaos {
+    right: 4px;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255,90,110,1),
+            rgba(255,38,63,1)
+        );
+
+    clip-path: polygon(
+        0 0,
+        100% 50%,
+        0 100%
+    );
+
+    box-shadow:
+        0 0 6px rgba(255,38,63,0.55);
 }
 </style>

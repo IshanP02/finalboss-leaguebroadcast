@@ -35,21 +35,83 @@ const isInGame = useIsInGame();
     grid-template-rows: 38px 1fr 114px;
     grid-template-columns: 1fr;
     z-index: 100;
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at top left, rgba(177, 18, 38, 0.18), transparent 38%),
+        repeating-linear-gradient(-16deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 8px),
+        #050507;
+    border: 1px solid var(--theme-border-soft);
+    box-shadow:
+        inset 0 0 22px rgba(255, 38, 63, 0.12),
+        0 0 18px rgba(0, 0, 0, 0.75);
+}
+
+.lframe-container::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 24px;
+    bottom: 24px;
+    width: 4px;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 38, 63, 1),
+        rgba(120, 10, 20, 1)
+    );
+    box-shadow: 0 0 12px rgba(255, 38, 63, 0.8);
+    z-index: 2;
 }
 
 .lframe-header,
 .lframe-footer {
-    background-color: black;
+    background:
+        linear-gradient(
+            90deg,
+            rgba(177, 18, 38, 0.2),
+            rgba(5, 5, 7, 0.95)
+        );
+    border-bottom: 1px solid rgba(255, 38, 63, 0.18);
+    position: relative;
+    z-index: 1;
+}
+
+.lframe-footer {
+    border-top: 1px solid rgba(255, 38, 63, 0.18);
+    border-bottom: none;
 }
 
 #champion-info-cutout {
     position: relative;
     min-height: 0;
+    background:
+        radial-gradient(circle at center, rgba(255, 38, 63, 0.08), transparent 60%),
+        #050507;
+    overflow: hidden;
+}
+
+#champion-info-cutout::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        repeating-linear-gradient(
+            -18deg,
+            rgba(255,255,255,0.025) 0px,
+            rgba(255,255,255,0.025) 1px,
+            transparent 1px,
+            transparent 9px
+        );
+    pointer-events: none;
+    opacity: 0.5;
 }
 
 .cutout-frame {
     display: block;
     width: 100%;
     height: 100%;
+    filter:
+        drop-shadow(0 0 10px rgba(255, 38, 63, 0.25))
+        drop-shadow(0 0 16px rgba(0, 0, 0, 0.9));
 }
 </style>

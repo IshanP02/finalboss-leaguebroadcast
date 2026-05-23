@@ -4,7 +4,6 @@ import lbLogo from '@/assets/leaguebroadcast-logo_text-color-bright_outline.png'
 
 <template>
     <div class="flex justify-center items-center w-full h-full">
-        <img :src="lbLogo" class="h-full object-contain" />
     </div>
 </template>
 

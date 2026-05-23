@@ -45,23 +45,37 @@ const client = useClient();
     justify-content: flex-end;
     gap: 4px;
     padding: 4px 8px 4px 6px;
-    border-radius: 4px;
-    backdrop-filter: blur(4px);
     width: 100%;
+    position: relative;
+    overflow: hidden;
+    border-radius: 2px;
+    backdrop-filter: blur(4px);
+    background:
+        repeating-linear-gradient(-16deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 8px),
+        #050507;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.55);
 }
 
 .kill-entry.order {
-    background: linear-gradient(to left,
-            color-mix(in oklch, var(--blue-team-color) 50%, #000000cc) 0px,
-            oklch(from var(--blue-team-color) l c h / 0) 120px);
     border-right: 3px solid var(--blue-team-color);
+    background:
+        linear-gradient(to left, rgba(70, 125, 255, 0.45), rgba(5, 5, 7, 0.95) 120px),
+        repeating-linear-gradient(-16deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 8px),
+        #050507;
+    box-shadow:
+        inset 0 0 0px rgba(70, 125, 255, 0.12),
+        0 0 0px rgba(70, 125, 255, 0.18);
 }
 
 .kill-entry.chaos {
-    background: linear-gradient(to left,
-            color-mix(in oklch, var(--red-team-color) 50%, #000000cc) 0px,
-            oklch(from var(--red-team-color) l c h / 0) 120px);
     border-right: 3px solid var(--red-team-color);
+    background:
+        linear-gradient(to left, rgba(255, 38, 63, 0.45), rgba(5, 5, 7, 0.95) 120px),
+        repeating-linear-gradient(-16deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 8px),
+        #050507;
+    box-shadow:
+        inset 0 0 0px rgba(255, 38, 63, 0.12),
+        0 0 0px rgba(255, 38, 63, 0.18);
 }
 
 .assisters {
@@ -78,11 +92,14 @@ const client = useClient();
     object-fit: cover;
     border-radius: 2px;
     flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.85);
 }
 
 .assister-icon {
     width: 32px;
     height: 32px;
+    opacity: 0.9;
 }
 
 .placeholder {
@@ -97,14 +114,24 @@ const client = useClient();
 }
 
 .kill-icon {
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--theme-text);
     font-size: 24px;
     padding: 0 2px;
     flex-shrink: 0;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
 }
 
+.kill-entry.order .kill-icon {
+    color: #8fb3ff;
+    text-shadow: 0 0 8px rgba(70, 125, 255, 0.8);
+}
+
+.kill-entry.chaos .kill-icon {
+    color: var(--theme-red-bright);
+    text-shadow: 0 0 8px rgba(255, 38, 63, 0.8);
+}
+
 .victim-icon {
-    filter: grayscale(0.5);
+    filter: grayscale(0.55) brightness(0.8);
 }
 </style>

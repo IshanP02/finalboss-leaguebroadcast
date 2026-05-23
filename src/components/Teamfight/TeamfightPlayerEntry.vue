@@ -136,17 +136,6 @@ const xpPct = computed(() => {
 
 
 <style lang="css" scoped>
-.champion-icon {
-    width: 80%;
-    aspect-ratio: 1 / 1;
-    transform: translateY(15%);
-    z-index: 2;
-}
-
-/*
-  3-column grid: [spell/splash/bars (×2)] [items]
-  Mirrored flips column order via grid-template-areas.
-*/
 .main-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
@@ -156,18 +145,43 @@ const xpPct = computed(() => {
         "spell1 spell2 items"
         "splash splash items"
         "bars   bars   items";
+
+    background:
+        linear-gradient(135deg, rgba(177, 18, 38, 0.14), transparent 48%),
+        repeating-linear-gradient(-16deg, rgba(255,255,255,0.028) 0 1px, transparent 1px 8px),
+        #050507;
+
+    border: 1px solid var(--theme-border-soft);
+    box-shadow:
+        inset 0 0 14px rgba(255, 38, 63, 0.1),
+        0 0 12px rgba(0,0,0,0.75);
+    overflow: hidden;
 }
 
 .main-grid.mirrored {
     grid-template-areas:
-        "empty ult    ult   "
+        "empty ult    ult"
         "items spell1 spell2"
         "items splash splash"
-        "items bars   bars  ";
+        "items bars   bars";
+}
+
+.champion-icon {
+    width: 80%;
+    aspect-ratio: 1 / 1;
+    transform: translateY(15%);
+    z-index: 2;
+    border: 2px solid rgba(255, 38, 63, 0.35);
+    box-shadow:
+        0 0 8px rgba(0,0,0,0.9),
+        0 0 10px rgba(255,38,63,0.18);
+    background: #050507;
 }
 
 .area-ult {
     grid-area: ult;
+    background:
+        radial-gradient(circle at center, rgba(255, 38, 63, 0.12), transparent 65%);
 }
 
 .area-spell1 {
@@ -178,28 +192,22 @@ const xpPct = computed(() => {
     grid-area: spell2;
 }
 
-.area-splash {
-    grid-area: splash;
-    border-left: 1px solid rgba(255, 255, 255, 0.55);
-    border-right: 1px solid rgba(255, 255, 255, 0.55);
-    border-top: 1px solid rgba(255, 255, 255, 0.55);
-}
-
-.area-bars {
-    grid-area: bars;
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    background-color: black;
-}
-
-.area-items {
-    grid-area: items;
-
-}
-
 .spell-icon {
     aspect-ratio: 1 / 1;
     width: 100%;
-    border: 2px solid rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 38, 63, 0.3);
+    background: #050507;
+    box-shadow:
+        inset 0 0 8px rgba(255, 38, 63, 0.08),
+        0 0 8px rgba(0,0,0,0.8);
+}
+
+.area-splash {
+    grid-area: splash;
+    border-left: 1px solid rgba(255, 38, 63, 0.28);
+    border-right: 1px solid rgba(255, 38, 63, 0.28);
+    border-top: 1px solid rgba(255, 38, 63, 0.28);
+    background: #050507;
 }
 
 .player-portrait {
@@ -210,28 +218,72 @@ const xpPct = computed(() => {
     justify-content: center;
     align-items: center;
     overflow: hidden;
+}
 
+.player-portrait::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(180deg, transparent 55%, rgba(5,5,7,0.72)),
+        repeating-linear-gradient(-16deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 8px);
+    pointer-events: none;
+}
+
+.area-bars {
+    grid-area: bars;
+    border: 1px solid rgba(255, 38, 63, 0.28);
+    background:
+        linear-gradient(90deg, rgba(177,18,38,0.16), #050507 35%, #050507);
+    box-shadow: inset 0 0 10px rgba(255,38,63,0.08);
+}
+
+.area-items {
+    grid-area: items;
+    background:
+        linear-gradient(180deg, rgba(255,38,63,0.08), transparent),
+        #050507;
+    border-left: 1px solid rgba(255, 38, 63, 0.24);
+}
+
+.main-grid.mirrored .area-items {
+    border-left: none;
+    border-right: 1px solid rgba(255, 38, 63, 0.24);
 }
 
 .item-slot {
     width: 100%;
     aspect-ratio: 1 / 1;
+    border-bottom: 1px solid rgba(255, 38, 63, 0.16);
+    background: rgba(0,0,0,0.22);
 }
 
 .level-text {
     font-family: "Bebas Neue", sans-serif;
     width: calc(100% / 3);
-    background-color: black;
+    background:
+        linear-gradient(180deg, var(--theme-red-dark), #050507);
+    color: var(--theme-text);
     display: flex;
     justify-content: center;
     align-items: center;
+    text-shadow:
+        0 0 4px black,
+        0 0 8px rgba(255,38,63,0.45);
+    border-color: rgba(255, 38, 63, 0.28) !important;
 }
 
 .respawn-timer {
     position: absolute;
-    color: white;
+    color: var(--theme-text);
     font-family: "Bebas Neue", sans-serif;
     font-size: 32px;
-    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    z-index: 2;
+    text-shadow:
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0 0 12px rgba(255,38,63,0.75);
 }
 </style>

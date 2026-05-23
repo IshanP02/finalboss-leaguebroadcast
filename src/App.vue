@@ -36,8 +36,10 @@ const gameTime = useIngameSelector((state) => state.gameData.gameTime);
     <LFrame class="overlay-lframe" />
 
     <!-- Basic Tier only features -->
-    <SkinDisplay class="overlay-skindisplay" :team="Team.Order" />
-    <SkinDisplay class="overlay-skindisplay" :team="Team.Chaos" mirror />
+    <div class="hidden-skin-display">
+        <SkinDisplay :team="Team.Order" />
+        <SkinDisplay :team="Team.Chaos" mirror />
+    </div>
     <SmiteReaction class="overlay-smitereaction" />
     <KillFeed class="overlay-killfeed" />
     <PlayerCameras class="overlay-playercameras" />
@@ -118,6 +120,15 @@ body {
   left: calc(285px + 176px);
   right: calc(285px + 176px);
   height: 260px;
+}
+
+.hidden-skin-display {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    overflow: hidden;
 }
 
 .overlay-playercameras {

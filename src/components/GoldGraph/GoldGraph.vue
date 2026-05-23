@@ -443,33 +443,55 @@ const verticalLines = computed(() => {
     position: relative;
     z-index: 99;
     box-sizing: border-box;
+    filter: drop-shadow(0 0 18px rgba(0, 0, 0, 0.9));
 }
 
 .title-container {
-    background-color: #1a1d24;
+    background:
+        linear-gradient(135deg, rgba(177, 18, 38, 0.35), transparent 45%),
+        repeating-linear-gradient(-16deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 8px),
+        #050507;
+    border-right: 1px solid var(--theme-border);
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding-left: 24px;
     padding-right: 24px;
     position: relative;
+    box-shadow: inset 0 0 20px rgba(255, 38, 63, 0.14);
+}
+
+.title-container::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 24px;
+    bottom: 24px;
+    width: 4px;
+    background: var(--theme-red-bright);
+    box-shadow: 0 0 12px rgba(255, 38, 63, 0.8);
 }
 
 .title-text {
-    color: #ffffff;
+    color: var(--theme-text);
     font-size: 24px;
     font-weight: 700;
     font-family: "Bebas Neue", sans-serif;
+    letter-spacing: 0.06em;
+    text-shadow: 0 0 5px black, 0 0 12px rgba(255, 38, 63, 0.55);
 }
 
 .title-arrow {
-    color: #ffffff;
+    color: var(--theme-red-bright);
     font-size: 48px;
     font-family: "Bebas Neue", sans-serif;
+    text-shadow: 0 0 10px rgba(255, 38, 63, 0.8);
 }
 
 .team-info-container {
-    background-color: black;
+    background:
+        linear-gradient(180deg, rgba(177, 18, 38, 0.18), transparent 45%, rgba(177, 18, 38, 0.12)),
+        #050507;
     height: 260px;
     z-index: 3;
     display: flex;
@@ -477,13 +499,21 @@ const verticalLines = computed(() => {
     align-items: center;
     justify-content: space-evenly;
     padding: 8px 0;
+    border-right: 1px solid var(--theme-border-soft);
+    box-shadow: inset 0 0 18px rgba(255, 38, 63, 0.1);
 }
 
 .team-icon {
     width: auto;
     max-height: 40%;
     object-fit: contain;
-    background-color: #12151a;
+    background-color: #09090c;
+    padding: 8px;
+    border: 1px solid var(--theme-border-soft);
+    box-shadow:
+        inset 0 0 12px rgba(255, 38, 63, 0.12),
+        0 0 10px rgba(0, 0, 0, 0.75);
+    filter: drop-shadow(0 0 8px rgba(255, 38, 63, 0.24));
 }
 
 .graph-container {
@@ -491,18 +521,24 @@ const verticalLines = computed(() => {
     min-height: 0;
     z-index: 3;
     overflow: hidden;
-    border: 10px solid rgba(0, 0, 0, 1);
+    border: 10px solid #050507;
     box-sizing: border-box;
+    background: #050507;
+    box-shadow: inset 0 0 16px rgba(255, 38, 63, 0.18);
 }
 
 .gold-graph {
     width: 100%;
     height: 100%;
-    background-color: #12151a;
-    color: #fff;
+    background:
+        radial-gradient(circle at center, rgba(177, 18, 38, 0.12), transparent 58%),
+        repeating-linear-gradient(-14deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 10px),
+        #09090c;
+    color: var(--theme-text);
     font-family: "Bebas Neue", sans-serif;
     user-select: none;
     overflow: hidden;
+    border: 1px solid var(--theme-border-soft);
 }
 
 .chart {
@@ -512,7 +548,7 @@ const verticalLines = computed(() => {
 }
 
 .pct-label {
-    fill: rgba(255, 255, 255, 0.45);
+    fill: rgba(245, 240, 235, 0.5);
     font-size: 9px;
     font-family: "Bebas Neue", sans-serif;
 }
@@ -522,23 +558,24 @@ const verticalLines = computed(() => {
     font-family: "Bebas Neue", sans-serif;
     font-weight: 600;
     paint-order: stroke fill;
-    stroke: #12151a;
+    stroke: #050507;
     stroke-width: 3px;
     stroke-linejoin: round;
 }
 
 .extrema-label.blue-label {
-    fill: rgba(120, 175, 255, 1);
+    fill: rgba(170, 190, 255, 1);
 }
 
 .extrema-label.red-label {
-    fill: rgba(255, 120, 120, 1);
+    fill: var(--theme-red-bright);
 }
 
 .time-label {
-    fill: rgba(255, 255, 255, 1);
+    fill: rgba(245, 240, 235, 0.9);
     font-size: 12px;
     font-family: "Bebas Neue", sans-serif;
+    letter-spacing: 0.04em;
 }
 
 @keyframes drawSegment {
