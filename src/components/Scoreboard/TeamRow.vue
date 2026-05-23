@@ -60,9 +60,13 @@ watch(goldDiff, (diff) => {
 
 <template>
     <div class="w-full h-full flex items-center py-1 px-1 gap-4" :class="mirror ? 'flex-row-reverse' : 'flex-row'">
-        <MatchScore class="self-stretch" :best-of="bestOf"
-            :fill-color="mirror ? 'var(--red-team-color)' : 'var(--blue-team-color)'" :wins="team.seriesScore.wins"
-            :mirror="mirror" />
+        <MatchScore
+        class="self-stretch"
+        :best-of="bestOf"
+        :fill-color="mirror ? '#ff263f' : '#3d8bff'"
+        :wins="team.seriesScore?.wins ?? 0"
+        :mirror="mirror"
+        />
         <img v-if="team.teamIconUrl" :src="client.getCacheUrl(team.teamIconUrl)" alt="Team icon"
             class="max-h-4/5 w-auto " @error="handleImageError" @load="handleImageLoad" />
         <div class="flex flex-col" :style="{

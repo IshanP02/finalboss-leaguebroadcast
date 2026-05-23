@@ -1,33 +1,65 @@
 <script setup lang="ts">
-import { BestOfType } from '@bluebottle_gg/league-broadcast-client';
+import { BestOfType } from "@bluebottle_gg/league-broadcast-client";
 
-const props = defineProps<{
-    bestOf: BestOfType,
-    wins: number,
-    fillColor: string
-    mirror?: boolean
-}>()
-
+defineProps<{
+  bestOf: BestOfType;
+  wins: number;
+  fillColor: string;
+  mirror?: boolean;
+}>();
 </script>
 
 <template>
-    <div class="flex gap-1" :class="mirror ? 'flex-row-reverse' : 'flex-row'">
-        <div id="color-display" class="flex w-2 border border-white/55 rounded-xs p-px">
-            <div class="grow" :style="{
-                backgroundColor: fillColor
-            }"></div>
-        </div>
-
-        <div id="scores" class="w-2 flex flex-col gap-1.5" v-if="bestOf !== BestOfType.BestOf1">
-            <div class="flex flex-1 w-full grow border border-white/55 rounded-xs p-px" v-for="i in bestOf" :key="i">
-                <div class="grow" :style="{
-                    backgroundColor: i <= wins ? fillColor : 'transparent'
-                }"></div>
-            </div>
-        </div>
-        <div v-else class="w-2"></div>
+  <div class="match-score" :class="mirror ? 'flex-row-reverse' : 'flex-row'">
+    <div class="color-display">
+      <div class="score-fill always-filled" :style="{ backgroundColor: fillColor }" />
     </div>
+
+    <div class="scores" v-if="bestOf !== BestOfType.BestOf1">
+      <div class="score-box" v-for="i in bestOf" :key="i">
+        <div
+          class="score-fill"
+          :class="{ filled: i <= wins }"
+          :style="{ backgroundColor: i <= wins ? fillColor : 'transparent' }"
+        />
+      </div>
+    </div>
+
+    <div v-else class="empty-score-space"></div>
+  </div>
 </template>
 
+<style scoped>
+.match-score {
+  display: flex;
+  gap: 0.25rem;
+  height: 100%;
+}
 
-<style lang="css" scoped></style>
+.color-display,
+.score-box {
+  width: 0.5rem;
+  display: flex;
+  flex: 1 1 0;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 2px;
+  padding: 1px;
+}
+
+.scores {
+  width: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.score-fill {
+  width: 100%;
+  height: 100%;
+  min-height: 1px;
+}
+
+.empty-score-space {
+  width: 0.5rem;
+}
+</style>

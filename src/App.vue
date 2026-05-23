@@ -15,6 +15,7 @@ import CompactTeamfight from "./components/Teamfight/CompactTeamfight.vue";
 import SmiteReaction from "./components/SmiteReaction/SmiteReaction.vue";
 import PlayerCameras from "./components/PlayerCameras/PlayerCameras.vue";
 import KillFeed from "./components/KillFeed/KillFeed.vue";
+import DamageGraph from "./components/DamageGraph/DamageGraph.vue";
 
 const debugVisible = ref(true);
 const baronTimer = useIngameSelector((state) => state.gameData.baronPitTimer);
@@ -44,6 +45,7 @@ const gameTime = useIngameSelector((state) => state.gameData.gameTime);
     <KillFeed class="overlay-killfeed" />
     <PlayerCameras class="overlay-playercameras" />
     <GoldGraph class="overlay-bottom" />
+    <DamageGraph class="overlay-damagegraph" />
     <CompactTeamfight class="overlay-teamfight" />
 
 
@@ -145,6 +147,12 @@ body {
   left: 10px;
   display: flex;
   gap: 4px;
+}
+
+.overlay-damagegraph {
+  position: absolute;
+  left: 0;
+  top: 200px;
 }
 
 .overlay-minimap {
