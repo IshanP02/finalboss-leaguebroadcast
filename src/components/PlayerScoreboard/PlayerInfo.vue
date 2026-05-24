@@ -151,9 +151,10 @@ const resourceColor = computed(() => {
         </div>
 
         <div class="player-stats" :class="mirror ? 'text-start' : 'text-end'">
-            <span class="absolute text-[#E2B793] w-full -translate-y-2">{{ scoreboardPlayer?.creepScore }}</span>
-            <span class="absolute w-full translate-y-2">{{ scoreboardPlayer?.kills }}/{{ scoreboardPlayer?.deaths }}/{{
-                scoreboardPlayer?.assists }}</span>
+        <span class="creep-score-text">{{ scoreboardPlayer?.creepScore }}</span>
+        <span class="kda-text">
+            {{ scoreboardPlayer?.kills }}/{{ scoreboardPlayer?.deaths }}/{{ scoreboardPlayer?.assists }}
+        </span>
         </div>
 
     </div>
@@ -231,15 +232,28 @@ const resourceColor = computed(() => {
 }
 
 .player-stats {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    color: white;
-    font-family: "Bebas Neue", sans-serif;
-    text-shadow: 0 0 2px rgba(0, 0, 0, 1);
-    position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0;
+  color: white;
+  font-family: "Bebas Neue", sans-serif;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 1);
+  position: relative;
+  line-height: 1;
+  min-width: 0;
+}
+
+.creep-score-text,
+.kda-text {
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+}
+
+.creep-score-text {
+  color: #E2B793;
 }
 
 /* Grayscale all columns except the death timer when player is dead */
