@@ -21,6 +21,16 @@ const gameTime = useIngameSelector((s) => s.gameData.gameTime);
 
 const respawnRemaining = computed(() => getRemaining(props.data?.respawnAt, gameTime.value));
 
+function formatDamage(value?: number) {
+  const damage = value ?? 0;
+
+  if (damage >= 1_000) return `${(damage / 1_000).toFixed(1).replace(".0", "")}k`;
+
+  return Math.round(damage).toString();
+}
+
+const fightDamage = computed(() => props.data?.totalDamageDealt ?? 0);
+
 const spellD = computed(() => {
     if (!props.data || !props.data.abilities || !props.data.abilities[SpellSlotIndex.D]) return undefined;
     return props.data.abilities[SpellSlotIndex.D];
@@ -83,7 +93,7 @@ const xpPct = computed(() => {
 <template>
 
     <!-- Main grid: ult + spells + splash + bars on left 2 cols, items on right col -->
-    <div class="main-grid" :class="mirror ? 'mirrored' : ''" :style="{
+    <div class="main-grid player-entry" :class="mirror ? 'mirrored' : ''" :style="{
         filter: respawnRemaining > 0 ? 'grayscale(1)' : 'grayscale(0)',
         transition: 'filter 0.5s ease'
     }">
@@ -103,6 +113,9 @@ const xpPct = computed(() => {
             skilled :total-cooldown="spellF?.totalCooldown" class="spell-icon area-spell2" />
 
         <!-- Splash portrait -->
+        <div class="fight-damage" :class="{ mirrored: mirror }">
+        {{ formatDamage(fightDamage) }}
+        </div>
         <div class="player-portrait bg-zinc-600 area-splash">
             <img :src="client.getCacheUrl(data?.champion?.squareImg)" class="object-cover w-full h-full" />
             <FadeTransition>
@@ -143,6 +156,7 @@ const xpPct = computed(() => {
     grid-template-areas:
         "ult    ult    empty"
         "spell1 spell2 items"
+        "damage damage items"
         "splash splash items"
         "bars   bars   items";
 
@@ -162,6 +176,7 @@ const xpPct = computed(() => {
     grid-template-areas:
         "empty ult    ult"
         "items spell1 spell2"
+        "items damage damage"
         "items splash splash"
         "items bars   bars";
 }
@@ -285,5 +300,23 @@ const xpPct = computed(() => {
         -1px 1px 0 #000,
         1px 1px 0 #000,
         0 0 12px rgba(255,38,63,0.75);
+}
+
+.fight-damage {
+  grid-area: damage;
+
+  color: white;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+
+  padding: 2px 6px;
+  background: rgba(5, 5, 7, 0.9);
+  border-left: 1px solid rgba(255, 60, 60, 0.5);
+  border-right: 1px solid rgba(255, 60, 60, 0.5);
+  border-top: 1px solid rgba(255, 60, 60, 0.5);
+
+  text-shadow: 0 1px 2px black;
 }
 </style>

@@ -10,56 +10,61 @@ defineProps<{
 </script>
 
 <template>
-  <div class="match-score" :class="mirror ? 'flex-row-reverse' : 'flex-row'">
-    <div class="color-display">
-      <div class="score-fill always-filled" :style="{ backgroundColor: fillColor }" />
+  <div class="flex gap-1" :class="mirror ? 'flex-row-reverse' : 'flex-row'">
+    <div id="color-display" class="flex w-2 border border-white/55 rounded-xs p-px">
+      <div class="grow" :style="{ backgroundColor: fillColor }"></div>
     </div>
 
-    <div class="scores" v-if="bestOf !== BestOfType.BestOf1">
-      <div class="score-box" v-for="i in bestOf" :key="i">
+    <div
+      id="scores"
+      class="match-score"
+      v-if="bestOf !== BestOfType.BestOf1"
+    >
+      <div
+        class="score-box"
+        :class="{ won: i <= wins }"
+        v-for="i in bestOf"
+        :key="i"
+      >
         <div
           class="score-fill"
-          :class="{ filled: i <= wins }"
           :style="{ backgroundColor: i <= wins ? fillColor : 'transparent' }"
         />
       </div>
     </div>
 
-    <div v-else class="empty-score-space"></div>
+    <div v-else class="w-2"></div>
   </div>
 </template>
 
 <style scoped>
 .match-score {
-  display: flex;
-  gap: 0.25rem;
-  height: 100%;
-}
-
-.color-display,
-.score-box {
-  width: 0.5rem;
-  display: flex;
-  flex: 1 1 0;
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  border-radius: 2px;
-  padding: 1px;
-}
-
-.scores {
-  width: 0.5rem;
+  width: 14px;
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 3px;
+}
+
+.score-box {
+  height: 10px;
+  display: flex;
+  padding: 1px;
+
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 2px;
+
+  background: rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
 }
 
 .score-fill {
-  width: 100%;
-  height: 100%;
-  min-height: 1px;
+  flex: 1;
+  border-radius: 1px;
 }
 
-.empty-score-space {
-  width: 0.5rem;
+.score-box.won {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 0 4px rgba(255, 255, 255, 0.18);
 }
 </style>

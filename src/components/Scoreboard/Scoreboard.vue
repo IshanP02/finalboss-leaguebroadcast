@@ -6,6 +6,7 @@ import TeamObjectiveRow from "./TeamObjectiveRow.vue";
 import { GameState } from "@bluebottle_gg/league-broadcast-client";
 import { useClient } from "@/client";
 import { handleImageError, handleImageLoad } from "@/utils/imageUtils";
+import PowerPlayBox from "./PowerPlayBox.vue";
 
 const scoreboard = useIngameSelector((s) => s.gameData.scoreboard);
 const players = useIngameSelector((s) => s.gameData.scoreboardBottom);
@@ -35,27 +36,37 @@ const dateTimeNowString = new Date().toISOString();
 
 <template>
     <Transition name="scoreboard" :duration="{ enter: 850, leave: 750 }">
-        <div v-if="scoreboard && blue && red" class="scoreboard">
-            <div class="row-clip theme-panel">
-                <div class="top-row">
-                    <TeamRow style="grid-column: 1;" :team="blue" :best-of="scoreboard.bestOf"
-                        :enemy-team-gold="red.gold" />
-                    <!-- TODO: remove temporary cache busting -->
-                    <img v-if="seasonIcon" :src="client.getCacheUrl(seasonIcon, true) + `?ts=${dateTimeNowString}`"
-                        class="center-logo" @error="handleImageError" @load="handleImageLoad" />
-                    <TeamRow style="grid-column: 3;" :team="red" :best-of="scoreboard.bestOf"
-                        :enemy-team-gold="blue.gold" mirror />
+        <div class="scoreboard-with-powerplays">
+            <div class="powerplay-side left">
+                <PowerPlayBox type="baron" :power-play="blue?.baronPowerPlay" />
+                <PowerPlayBox type="elder" :power-play="blue?.dragonPowerPlay" />
+            </div>
+            <div v-if="scoreboard && blue && red" class="scoreboard">
+                <div class="row-clip theme-panel">
+                    <div class="top-row">
+                        <TeamRow style="grid-column: 1;" :team="blue" :best-of="scoreboard.bestOf"
+                            :enemy-team-gold="red.gold" />
+                        <!-- TODO: remove temporary cache busting -->
+                        <img v-if="seasonIcon" :src="client.getCacheUrl(seasonIcon, true) + `?ts=${dateTimeNowString}`"
+                            class="center-logo" @error="handleImageError" @load="handleImageLoad" />
+                        <TeamRow style="grid-column: 3;" :team="red" :best-of="scoreboard.bestOf"
+                            :enemy-team-gold="blue.gold" mirror />
+                    </div>
+                </div>
+                <div class="row-clip">
+                    <div class="bottom-row">
+                        <TeamObjectiveRow :team="blue" :players="bluePlayers" :is-mocking="isMocking" />
+                        <p class="game-time text-stretch-vertical">{{ gameTime }}
+                        </p>
+                        <TeamObjectiveRow :team="red" :players="redPlayers" mirror :is-mocking="isMocking" />
+                    </div>
                 </div>
             </div>
-            <div class="row-clip">
-                <div class="bottom-row">
-                    <TeamObjectiveRow :team="blue" :players="bluePlayers" :is-mocking="isMocking" />
-                    <p class="game-time text-stretch-vertical">{{ gameTime }}
-                    </p>
-                    <TeamObjectiveRow :team="red" :players="redPlayers" mirror :is-mocking="isMocking" />
-                </div>
-            </div>
+            <div class="powerplay-side right">
+                <PowerPlayBox type="baron" :power-play="red?.baronPowerPlay" mirror />
+                <PowerPlayBox type="elder" :power-play="red?.dragonPowerPlay" mirror />
         </div>
+    </div>
     </Transition>
 </template>
 
@@ -195,6 +206,39 @@ const dateTimeNowString = new Date().toISOString();
     /* Opera */
     transform: scale(1, 1.5);
     /* Standard syntax */
+}
+.scoreboard-with-powerplays {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.powerplay-side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 0px;
+}
+
+.powerplay-side.left {
+  margin-right: 8px;
+}
+
+.powerplay-side.right {
+  margin-left: 8px;
+}
+
+.power-play {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(45,45,45,0.96),
+      rgba(8,8,10,0.96)
+    );
+
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease;
 }
 
 

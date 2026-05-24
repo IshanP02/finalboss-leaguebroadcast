@@ -27,7 +27,7 @@ const playersOnTeam = ref<teamMember[]>([]);
 // Use the same rotation index as SkinDisplay.vue
 const currentPlayerIndex = ref(0);
 
-const rotationInterval = 5000;
+const rotationInterval = 7500;
 let intervalId: number | null = null;
 
 const currentScoreboardPlayer = computed(() => {
@@ -102,7 +102,7 @@ onUnmounted(() => {
             <Transition name="skin-fade" mode="out-in">
                 <img
                     v-if="currentSplashUrl"
-                    :key="currentPlayerIndex.value"
+                    :key="currentPlayerIndex.valueOf()"
                     :style="{
                         filter: isCurrentPlayerDead ? 'grayscale(1)' : 'grayscale(0)'
                     }"

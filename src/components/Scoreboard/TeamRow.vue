@@ -59,7 +59,7 @@ watch(goldDiff, (diff) => {
 </script>
 
 <template>
-    <div class="w-full h-full flex items-center py-1 px-1 gap-4" :class="mirror ? 'flex-row-reverse' : 'flex-row'">
+    <div class="w-full h-full flex items-center py-1 px-1 gap-2.5" :class="mirror ? 'flex-row-reverse' : 'flex-row'">
         <MatchScore
         class="self-stretch"
         :best-of="bestOf"

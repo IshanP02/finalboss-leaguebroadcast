@@ -98,36 +98,96 @@ const panelTitle = computed(() => {
 
 <style scoped>
 .damage-graph {
+  position: relative;
   width: 360px;
-  padding: 8px;
-  background: rgba(8, 11, 18, 0.92);
-  border: 1px solid rgba(80, 90, 110, 0.65);
-  border-left: 0;
-  color: #f3f4f6;
-  font-family: "Roboto Condensed", "Arial Narrow", Arial, sans-serif;
+  padding: 6px;
+  color: #fff;
+  font-family: "Bebas Neue", "Roboto Condensed", Arial, sans-serif;
   text-transform: uppercase;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(40, 40, 40, 0.96) 0%,
+      rgba(15, 15, 15, 0.96) 100%
+    );
+
+  border: 1px solid rgba(255, 70, 70, 0.55);
+  border-left: 0;
+  border-radius: 0 8px 8px 0;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    inset 0 -1px 0 rgba(0,0,0,0.6),
+    0 0 10px rgba(255, 40, 40, 0.12);
+
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.damage-graph::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 60, 60, 0.08) 0%,
+      transparent 18%,
+      transparent 82%,
+      rgba(255, 60, 60, 0.08) 100%
+    );
 }
 
 .damage-header {
-  height: 28px;
+  position: relative;
+
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
+
   margin-bottom: 6px;
 
-  background: linear-gradient(
-    90deg,
-    rgba(22, 27, 38, 0.98),
-    rgba(32, 38, 52, 0.98)
-  );
+  color: #fff;
+  font-size: 24px;
+  font-weight: bold;
+  line-height: 1;
+  letter-spacing: var(--tracking-tight);
 
-  border: 1px solid rgba(95, 105, 125, 0.45);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(150, 20, 20, 0.95) 0%,
+      rgba(90, 10, 10, 0.95) 100%
+    );
 
-  color: rgba(240, 242, 247, 0.96);
+  border:
+    1px solid rgba(255,255,255,0.08);
 
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: 1.2px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    inset 0 -1px 0 rgba(0,0,0,0.45);
+
+  border-radius: 6px;
+
+  text-shadow:
+    0 1px 2px rgba(0,0,0,0.8);
+
+  transform: scale(1, 1.25);
+}
+
+.damage-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+
+  background: rgba(255,255,255,0.18);
 }
 
 .damage-list {
@@ -138,52 +198,42 @@ const panelTitle = computed(() => {
 
 .damage-row {
   position: relative;
-
-  padding: 5px 7px 6px 8px;
-
-  background: rgba(20, 24, 34, 0.88);
-
-  border-left: 4px solid white;
-
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.45);
+  padding: 6px 8px;
+  background-color: rgba(0, 0, 0, 0.4);
+  border-radius: 6px;
+  border: 1px solid #ffffff22;
+  border-left: 6px solid white;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .damage-row-top {
   display: grid;
-  grid-template-columns: 1fr 54px;
+  grid-template-columns: 1fr 58px;
   align-items: center;
   gap: 8px;
-
-  margin-bottom: 4px;
-
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.45px;
+  margin-bottom: 5px;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
+  letter-spacing: var(--tracking-tight);
 }
 
 .player-name {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-
-  color: rgba(235, 238, 245, 0.96);
 }
 
 .damage-number {
   text-align: right;
   font-variant-numeric: tabular-nums;
-
-  color: rgba(210, 214, 224, 0.92);
 }
 
 .bar-track {
-  height: 7px;
-
-  background: rgba(0, 0, 0, 0.45);
-
-  border-top: 1px solid rgba(255, 255, 255, 0.03);
-
+  height: 8px;
+  background-color: rgba(0, 0, 0, 0.65);
+  border-radius: 999px;
   overflow: hidden;
 }
 
@@ -191,7 +241,7 @@ const panelTitle = computed(() => {
   display: block;
   height: 100%;
   min-width: 4px;
-
+  border-radius: 999px;
   transition: width 0.35s ease;
 }
 
@@ -205,6 +255,4 @@ const panelTitle = computed(() => {
   transform: translateX(-100%);
   opacity: 0;
 }
-
-
 </style>

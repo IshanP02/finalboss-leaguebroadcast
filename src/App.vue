@@ -21,6 +21,7 @@ const debugVisible = ref(true);
 const baronTimer = useIngameSelector((state) => state.gameData.baronPitTimer);
 const dragonTimer = useIngameSelector((state) => state.gameData.dragonPitTimer);
 const gameTime = useIngameSelector((state) => state.gameData.gameTime);
+const teamfight = useIngameSelector((state) => state.gameData.teamfightDamageOverview);
 </script>
 
 <template>
@@ -43,7 +44,12 @@ const gameTime = useIngameSelector((state) => state.gameData.gameTime);
     </div>
     <SmiteReaction class="overlay-smitereaction" />
     <KillFeed class="overlay-killfeed" />
-    <PlayerCameras class="overlay-playercameras" />
+    <Transition name="camera-slide-down">
+      <PlayerCameras
+        v-if="!teamfight"
+        class="overlay-playercameras"
+      />
+    </Transition>
     <GoldGraph class="overlay-bottom" />
     <DamageGraph class="overlay-damagegraph" />
     <CompactTeamfight class="overlay-teamfight" />
@@ -93,6 +99,19 @@ body {
 </style>
 
 <style scoped>
+.camera-slide-down-enter-active {
+  transition: transform 0.3s ease 0.3s;
+}
+
+.camera-slide-down-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.camera-slide-down-enter-from,
+.camera-slide-down-leave-to {
+  transform: translateY(100%);
+}
+
 .overlay {
   position: relative;
   width: 1920px;
