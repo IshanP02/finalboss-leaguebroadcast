@@ -1,12 +1,15 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { BestOfType } from "@bluebottle_gg/league-broadcast-client";
 
-defineProps<{
+const props = defineProps<{
   bestOf: BestOfType;
   wins: number;
   fillColor: string;
   mirror?: boolean;
 }>();
+
+const winsNeeded = computed(() => Math.ceil(props.bestOf / 2));
 </script>
 
 <template>
@@ -23,7 +26,7 @@ defineProps<{
       <div
         class="score-box"
         :class="{ won: i <= wins }"
-        v-for="i in bestOf"
+        v-for="i in winsNeeded"
         :key="i"
       >
         <div
