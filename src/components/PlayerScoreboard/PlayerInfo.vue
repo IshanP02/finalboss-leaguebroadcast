@@ -161,6 +161,8 @@ const resourceColor = computed(() => {
 </template>
 
 <style lang="css" scoped>
+
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&display=swap');
 #player-info-container {
     display: grid;
     grid-template-columns: 24px 1fr 3fr 1fr;
@@ -181,7 +183,7 @@ const resourceColor = computed(() => {
 
 #player-info-container span {
     width: 100%;
-    font-family: "Bebas Neue", sans-serif;
+    font-family: "Chakra Petch", sans-serif;
 }
 
 .level-text {
@@ -203,7 +205,7 @@ const resourceColor = computed(() => {
 .death-timer-text {
     color: white;
     font-size: 24px;
-    font-family: "Bebas Neue", sans-serif;
+    font-family: "Chakra Petch", sans-serif;
     text-shadow: 0 0 2px rgba(0, 0, 0, 1);
 }
 
@@ -238,7 +240,7 @@ const resourceColor = computed(() => {
   justify-content: center;
   gap: 0;
   color: white;
-  font-family: "Bebas Neue", sans-serif;
+  font-family: "Chakra Petch", sans-serif;
   text-shadow: 0 0 2px rgba(0, 0, 0, 1);
   position: relative;
   line-height: 1;
