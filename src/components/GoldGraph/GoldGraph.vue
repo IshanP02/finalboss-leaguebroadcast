@@ -335,14 +335,17 @@ const notableExtrema = computed(() => {
 
 /** Vertical reference lines at every 5-minute mark. */
 const verticalLines = computed(() => {
-    if (!displaySeries.value) return [];
-    const { maxTime } = displaySeries.value;
-    const lines: Array<{ x: number; label: number }> = [];
-    for (let t = 300; t < maxTime; t += 300) {
-        const x = PADDING_X + (t / maxTime) * (WIDTH - 2 * PADDING_X);
-        lines.push({ x, label: Math.round(t / 60) });
-    }
-    return lines;
+  if (!displaySeries.value) return [];
+
+  const { maxTime } = displaySeries.value;
+  const lines: Array<{ x: number; label: string }> = [];
+
+  for (let t = 300; t < maxTime; t += 300) {
+    const x = PADDING_X + (t / maxTime) * (WIDTH - 2 * PADDING_X);
+    lines.push({ x, label: formatGoldShort(Math.round(t / 60)) });
+  }
+
+  return lines;
 });
 
 
