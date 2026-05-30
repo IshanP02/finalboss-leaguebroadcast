@@ -16,20 +16,40 @@ import SmiteReaction from "./components/SmiteReaction/SmiteReaction.vue";
 import PlayerCameras from "./components/PlayerCameras/PlayerCameras.vue";
 import KillFeed from "./components/KillFeed/KillFeed.vue";
 import DamageGraph from "./components/DamageGraph/DamageGraph.vue";
+import IntroSequence from "./components/IntroSequence/IntroSequence.vue";
 
 const debugVisible = ref(true);
 const baronTimer = useIngameSelector((state) => state.gameData.baronPitTimer);
 const dragonTimer = useIngameSelector((state) => state.gameData.dragonPitTimer);
 const gameTime = useIngameSelector((state) => state.gameData.gameTime);
 const teamfight = useIngameSelector((state) => state.gameData.teamfightDamageOverview);
+const introVisible = ref(false);
 </script>
 
 <template>
   <div class="overlay">
 
     <!-- Core features available in all tiers -->
-    <Scoreboard class="overlay-scoreboard" />
-    <PlayerScoreboard class="overlay-playerscoreboard" />
+    <Transition name="scoreboard-slide">
+      <Scoreboard
+        v-if="!introVisible"
+        class="overlay-scoreboard"
+      />
+    </Transition>
+
+    <Transition name="bottom-slide">
+      <PlayerScoreboard
+        v-if="!introVisible"
+        class="overlay-playerscoreboard"
+      />
+    </Transition>
+
+    <Transition name="camera-slide-down">
+      <PlayerCameras
+        v-if="!teamfight && !introVisible"
+        class="overlay-playercameras"
+      />
+    </Transition>
     <div class="overlay-objective-timers">
       <ObjectiveTimer :objective-data="baronTimer" :game-time="gameTime" />
       <ObjectiveTimer :objective-data="dragonTimer" :game-time="gameTime" />
@@ -44,15 +64,13 @@ const teamfight = useIngameSelector((state) => state.gameData.teamfightDamageOve
     </div>
     <SmiteReaction class="overlay-smitereaction" />
     <KillFeed class="overlay-killfeed" />
-    <Transition name="camera-slide-down">
-      <PlayerCameras
-        v-if="!teamfight"
-        class="overlay-playercameras"
-      />
-    </Transition>
     <GoldGraph class="overlay-bottom" />
     <DamageGraph class="overlay-damagegraph" />
     <CompactTeamfight class="overlay-teamfight" />
+    <IntroSequence
+      class="overlay-damageflow"
+      @visible-change="introVisible = $event"
+    />
 
 
     <!-- Debug panel. Hide me in production! -->
@@ -112,6 +130,32 @@ body {
   transform: translateY(100%);
 }
 
+.scoreboard-slide-enter-active,
+.scoreboard-slide-leave-active {
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+
+.scoreboard-slide-enter-from,
+.scoreboard-slide-leave-to {
+  transform: translate(-50%, -120%);
+  opacity: 0;
+}
+
+.bottom-slide-enter-active,
+.bottom-slide-leave-active,
+.camera-slide-down-enter-active,
+.camera-slide-down-leave-active {
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+
+.bottom-slide-enter-from,
+.bottom-slide-leave-to,
+.camera-slide-down-enter-from,
+.camera-slide-down-leave-to {
+  transform: translateY(120%);
+  opacity: 0;
+}
+
 .overlay {
   position: relative;
   width: 1920px;
@@ -141,6 +185,13 @@ body {
   left: calc(285px + 176px);
   right: calc(285px + 176px);
   height: 260px;
+}
+
+.overlay-damageflow {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
 }
 
 .hidden-skin-display {
