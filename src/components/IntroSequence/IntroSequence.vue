@@ -36,6 +36,26 @@ function getTeamName(team: unknown, fallback: string) {
   return t?.name ?? t?.teamName ?? t?.displayName ?? fallback;
 }
 
+const scoreboardBottom = useIngameSelector((s) => s.gameData.scoreboardBottom);
+
+function getPlayerDisplayName(player: any) {
+  return player?.displayName ?? player?.name ?? player?.champion?.alias ?? "";
+}
+
+const bluePlayerNames = computed(() =>
+  scoreboardBottom.value?.teams[0]?.players
+    ?.map(getPlayerDisplayName)
+    .filter(Boolean)
+    .join(" • ") ?? ""
+);
+
+const redPlayerNames = computed(() =>
+  scoreboardBottom.value?.teams[1]?.players
+    ?.map(getPlayerDisplayName)
+    .filter(Boolean)
+    .join(" • ") ?? ""
+);
+
 const blueTeamName = computed(() => getTeamName(blueTeam.value, "Blue Team"));
 const redTeamName = computed(() => getTeamName(redTeam.value, "Red Team"));
 
@@ -48,7 +68,7 @@ function playIntro() {
 
     hideTimer = window.setTimeout(() => {
       visible.value = false;
-    }, 9000);
+    }, 10000);
   });
 }
 
@@ -70,6 +90,7 @@ watch(
             <div class="team team-blue">
                 <div class="team-label">BLUE SIDE</div>
                 <div class="team-name">{{ blueTeamName }}</div>
+                <div class="players">{{ bluePlayerNames }}</div>
             </div>
 
             <div class="center">
@@ -83,6 +104,7 @@ watch(
             <div class="team team-red">
                 <div class="team-label">RED SIDE</div>
                 <div class="team-name">{{ redTeamName }}</div>
+                <div class="players">{{ redPlayerNames }}</div>
             </div>
             </section>
         </Transition>
@@ -90,40 +112,6 @@ watch(
 </template>
 
 <style scoped>
-.intro-bar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 467px;
-  height: 145px;
-
-  display: grid;
-  grid-template-columns: 1fr 260px 1fr;
-  align-items: center;
-  padding: 22px 64px;
-
-  background:
-    linear-gradient(
-      90deg,
-      rgba(37, 99, 235, 0.24),
-      transparent 30%,
-      transparent 70%,
-      rgba(220, 38, 38, 0.24)
-    ),
-    rgba(15, 23, 42, 0.94);
-
-  border-top: 1px solid rgba(148, 163, 184, 0.28);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.28);
-
-  box-shadow:
-    0 18px 40px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-
-  color: #e2e8f0;
-  overflow: hidden;
-  text-transform: uppercase;
-}
-
 .intro-layer {
   position: absolute;
   inset: 0;
@@ -132,31 +120,60 @@ watch(
   pointer-events: none;
 }
 
+.intro-bar {
+  position: absolute;
+  left: 110px;
+  right: 110px;
+  top: 448px;
+  min-height: 176px;
+
+  display: grid;
+  grid-template-columns: 1fr 300px 1fr;
+  align-items: center;
+  gap: 28px;
+  padding: 26px 42px;
+
+  font-family: "Chakra Petch", sans-serif;
+  color: white;
+  text-transform: uppercase;
+  overflow: hidden;
+
+  background:
+    linear-gradient(135deg, rgba(177, 18, 38, 0.16), transparent 35%),
+    repeating-linear-gradient(
+      -12deg,
+      rgba(255, 255, 255, 0.035) 0px,
+      rgba(255, 255, 255, 0.035) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    var(--theme-bg);
+
+  border: 1px solid var(--theme-border);
+
+  box-shadow:
+    inset 0 0 18px rgba(255, 38, 63, 0.12),
+    0 0 18px rgba(0, 0, 0, 0.65);
+}
+
 .intro-bar::before,
 .intro-bar::after {
   content: "";
   position: absolute;
   top: 0;
-  width: 6px;
+  width: 5px;
   height: 100%;
+  pointer-events: none;
 }
 
 .intro-bar::before {
   left: 0;
-  background: var(--blue-team-color);
+  background: linear-gradient(to bottom, transparent, var(--blue-team-color));
 }
 
 .intro-bar::after {
   right: 0;
-  background: var(--red-team-color);
-}
-
-.series-score {
-  margin: 6px 0;
-  font-size: 52px;
-  font-weight: 950;
-  line-height: 1;
-  color: #f8fafc;
+  background: linear-gradient(to bottom, transparent, var(--red-team-color));
 }
 
 .team {
@@ -170,10 +187,11 @@ watch(
 .team-label,
 .event-label,
 .series-label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
-  letter-spacing: 0.22em;
-  color: #94a3b8;
+  letter-spacing: var(--tracking-wide);
+  color: #e2b793;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 1);
 }
 
 .team-blue .team-label {
@@ -186,10 +204,12 @@ watch(
 
 .team-name {
   margin-top: 8px;
-  font-size: 48px;
+  font-size: 46px;
   font-weight: 900;
   line-height: 1;
-  color: #f8fafc;
+  color: white;
+  letter-spacing: var(--tracking-wide);
+  text-shadow: 0 0 2px rgba(0, 0, 0, 1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -199,7 +219,9 @@ watch(
   margin-top: 14px;
   font-size: 18px;
   font-weight: 600;
-  color: #cbd5e1;
+  color: #e2b793;
+  letter-spacing: var(--tracking-wide);
+  text-shadow: 0 0 2px rgba(0, 0, 0, 1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -207,26 +229,30 @@ watch(
 
 .center {
   text-align: center;
+  padding: 12px 18px;
+  border-left: 1px solid rgba(255, 38, 63, 0.28);
+  border-right: 1px solid rgba(255, 38, 63, 0.28);
 }
 
-.versus {
+.series-score {
   margin: 8px 0;
   font-size: 56px;
   font-weight: 950;
   line-height: 1;
-  color: #f8fafc;
+  color: white;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 1);
 }
 
 .intro-enter-active,
 .intro-leave-active {
   transition:
-    opacity 0.45s ease,
-    scale 0.45s ease;
+    opacity 0.5s ease,
+    transform 0.5s ease;
 }
 
 .intro-enter-from,
 .intro-leave-to {
   opacity: 0;
-  scale: 0.96;
+  transform: translateY(28px);
 }
 </style>
