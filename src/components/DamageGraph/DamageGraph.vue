@@ -97,12 +97,13 @@ const panelTitle = computed(() => {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&display=swap');
 .damage-graph {
   position: relative;
   width: 360px;
   padding: 6px;
   color: #fff;
-  font-family: "Bebas Neue", "Roboto Condensed", Arial, sans-serif;
+  font-family: "Chakra Petch", "Bebas Neue", "Roboto Condensed", Arial, sans-serif;
   text-transform: uppercase;
 
   background:

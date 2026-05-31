@@ -90,7 +90,7 @@ watch(
             <div class="team team-blue">
                 <div class="team-label">BLUE SIDE</div>
                 <div class="team-name">{{ blueTeamName }}</div>
-                <div class="players">{{ bluePlayerNames }}</div>
+                <div v-if="bluePlayerNames" class="players">{{ bluePlayerNames }}</div>
             </div>
 
             <div class="center">
@@ -104,7 +104,7 @@ watch(
             <div class="team team-red">
                 <div class="team-label">RED SIDE</div>
                 <div class="team-name">{{ redTeamName }}</div>
-                <div class="players">{{ redPlayerNames }}</div>
+                <div v-if="redPlayerNames" class="players">{{ redPlayerNames }}</div>
             </div>
             </section>
         </Transition>

@@ -94,6 +94,6 @@ const goldText = computed(() => {
 }
 
 .power-play.elder {
-  border-color: rgba(175, 90, 255, 0.7);
+  border-color: rgba(255, 38, 63, 0.55);
 }
 </style>

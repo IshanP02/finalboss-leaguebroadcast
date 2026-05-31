@@ -222,7 +222,7 @@ function formatGoldShort(val: number): string {
     const abs = Math.abs(val);
     const sign = val > 0 ? "+" : "-";
     if (abs >= 1000) return `${sign}${(abs / 1000).toFixed(1)}k`;
-    return `${sign}${abs}`;
+    return `${sign}${abs.toFixed(0)}`;
 }
 
 /** Scale labels: max gold advantage at top (blue) and bottom (red). */
