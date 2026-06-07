@@ -111,7 +111,7 @@ const resourceColor = computed(() => {
                     :img="client.getCacheUrl(summonerTwo?.assets?.iconAsset)" show-timer skilled />
             </div>
         </div>
-        <div class="relative w-full h-full p-0.5" :class="buffBorderClass">
+        <div class="champion-icon-cell" :class="buffBorderClass">
             <img id="player-champion-icon" :src="client.getCacheUrl(scoreboardPlayer?.champion?.squareImg)" />
             <span class="shutdown-text"> {{ shutdown }}</span>
             <span class="level-text" :style="{
@@ -165,12 +165,30 @@ const resourceColor = computed(() => {
 @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&display=swap');
 #player-info-container {
     display: grid;
-    grid-template-columns: 24px 1fr 3fr 1fr;
+    grid-template-columns: 24px 43px minmax(0, 1fr) 48px;
     grid-template-rows: minmax(0, 1fr);
     gap: 0px;
     padding: 4px;
     border-left: 1px solid rgba(255, 255, 255, 0.55);
     overflow: visible;
+}
+
+.champion-icon-cell {
+  position: relative;
+  width: 43px;
+  height: 43px;
+  min-width: 43px;
+  min-height: 43px;
+  padding: 2px;
+  overflow: hidden;
+  align-self: center;
+}
+
+#player-champion-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 #player-info-container.mirror {
