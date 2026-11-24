@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import FbeGameResults from "./FbeGameResults.vue";
+import FbeDamageBreakdown from "./FbeDamageBreakdown.vue";
+import FbeGoldBreakdown from "./FbeGoldBreakdown.vue";
 
 import {
   computed,
@@ -206,7 +208,7 @@ watch(activeComponent, (component) => {
   <div class="pg-combined">
     <Transition name="pg-screen" mode="out-in">
 
-    <!-- Phase 3: Actual Game Results -->
+    <!-- Phase 3: Game Results -->
     <FbeGameResults
         v-if="
         componentName === 'postgame-game' ||
@@ -216,6 +218,24 @@ watch(activeComponent, (component) => {
         :overview="resultsOverview"
         :game-id="gameId"
         :is-mocking="isMocking"
+        :loading="loading"
+        :error="loadError"
+    />
+
+    <!-- Phase 4: Damage Breakdown -->
+    <FbeDamageBreakdown
+        v-else-if="componentName === 'postgame-game-damage'"
+        :key="'damage-' + screenKey"
+        :overview="resultsOverview"
+        :loading="loading"
+        :error="loadError"
+    />
+
+    <!-- Phase 4: Gold Advantage -->
+    <FbeGoldBreakdown
+        v-else-if="componentName === 'postgame-game-gold'"
+        :key="'gold-' + screenKey"
+        :overview="resultsOverview"
         :loading="loading"
         :error="loadError"
     />

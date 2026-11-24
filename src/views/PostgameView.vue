@@ -23,6 +23,12 @@ import PostGameDebug from
 import FbeGameResults from
   "@/components/PostGame/FbeGameResults.vue";
 
+import FbeDamageBreakdown from
+  "@/components/PostGame/FbeDamageBreakdown.vue";
+
+import FbeGoldBreakdown from
+  "@/components/PostGame/FbeGoldBreakdown.vue";
+
 import {
   usePostGameSelector,
 } from "@/composables/usePostGame";
@@ -51,6 +57,21 @@ const showPreview = computed(() => {
     ) &&
     route.query.pgscreen !== "combined"
   );
+});
+
+const previewScreen = computed(() => {
+  const screen = route.query.pgscreen;
+
+  switch (screen) {
+    case "damage":
+      return "damage";
+
+    case "gold":
+      return "gold";
+
+    default:
+      return "results";
+  }
 });
 
 // --------------------------------------------------
@@ -179,14 +200,39 @@ watch(
 <template>
   <div class="postgame-view">
 
-    <!-- Diagnostic dashboard -->
+    <!-- Development diagnostics -->
     <PostGameDebug
       v-if="showDebug"
     />
 
-    <!-- Explicit Game Results preview -->
+    <!-- Damage preview -->
+    <FbeDamageBreakdown
+      v-else-if="
+        showPreview &&
+        previewScreen === 'damage'
+      "
+      :key="'damage-preview'"
+      :overview="previewOverview"
+      :loading="previewLoading"
+      :error="previewError"
+    />
+
+    <!-- Gold preview -->
+    <FbeGoldBreakdown
+      v-else-if="
+        showPreview &&
+        previewScreen === 'gold'
+      "
+      :key="'gold-preview'"
+      :overview="previewOverview"
+      :loading="previewLoading"
+      :error="previewError"
+    />
+
+    <!-- Game Results preview -->
     <FbeGameResults
       v-else-if="showPreview"
+      :key="'results-preview'"
       :overview="previewOverview"
       :game-id="previewGameId"
       :is-mocking="isMocking === true"
@@ -194,7 +240,7 @@ watch(
       :error="previewError"
     />
 
-    <!-- Normal caster-controlled overlay -->
+    <!-- Caster-controlled broadcast -->
     <PostGameCombined
       v-else
     />
