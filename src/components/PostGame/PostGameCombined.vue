@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import FbeGameResults from "./FbeGameResults.vue";
+
 import {
   computed,
   ref,
@@ -74,6 +76,24 @@ const loading = ref(false);
 const loadError = ref("");
 const requestedGameKey = ref<string | null>(null);
 const loadedGameKey = ref<string | null>(null);
+
+const selectedGameKey = computed(() => {
+  return [
+    gameId.value ?? "current",
+    isMocking.value ? "mock" : "live",
+  ].join("-");
+});
+
+const resultsOverview = computed(() => {
+  if (
+    loading.value ||
+    loadedGameKey.value !== selectedGameKey.value
+  ) {
+    return null;
+  }
+
+  return overview.value;
+});
 
 const overviewScreens = new Set<ScreenName>([
   "postgame-game",
@@ -185,11 +205,27 @@ watch(activeComponent, (component) => {
 <template>
   <div class="pg-combined">
     <Transition name="pg-screen" mode="out-in">
-      <section
-        v-if="componentName"
-        :key="screenKey"
+
+    <!-- Phase 3: Actual Game Results -->
+    <FbeGameResults
+        v-if="
+        componentName === 'postgame-game' ||
+        componentName === 'postgame-game-stats'
+        "
+        :key="'results-' + screenKey"
+        :overview="resultsOverview"
+        :game-id="gameId"
+        :is-mocking="isMocking"
+        :loading="loading"
+        :error="loadError"
+    />
+
+    <!-- Temporary placeholders for remaining phases -->
+    <section
+        v-else-if="componentName"
+        :key="'placeholder-' + screenKey"
         class="pg-placeholder"
-      >
+    >
         <div class="pg-header">
           <div class="pg-brand">
             FINAL BOSS ESPORTS

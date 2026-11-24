@@ -2,10 +2,16 @@
 import {
   computed,
   ref,
+  shallowRef,
   watch,
 } from "vue";
 
 import { useRoute } from "vue-router";
+
+import type {
+  postGameOverview,
+} from "@bluebottle_gg/league-broadcast-client";
+
 import { useClient } from "@/client";
 
 import PostGameCombined from
@@ -14,151 +20,184 @@ import PostGameCombined from
 import PostGameDebug from
   "@/components/PostGame/PostGameDebug.vue";
 
+import FbeGameResults from
+  "@/components/PostGame/FbeGameResults.vue";
+
 import {
-  usePostGameOverview,
-  useIsPostGameActive,
   usePostGameSelector,
 } from "@/composables/usePostGame";
 
 const route = useRoute();
 const client = useClient();
 
-const overview = usePostGameOverview();
-const isActive = useIsPostGameActive();
-
 const isMocking = usePostGameSelector(
-  (state) => state.postGameData.isMocking
+  (state) => state.postGameData.isMocking,
 );
+
+// --------------------------------------------------
+// Display mode
+// --------------------------------------------------
 
 const showDebug = computed(
-  () => route.query.debug === "true"
+  () => route.query.debug === "true",
 );
 
-const previewRequested = computed(
-  () =>
-    route.query.pgload !== undefined ||
-    route.query.pggame !== undefined
-);
-
-const showPreview = computed(
-  () =>
-    previewRequested.value &&
+const showPreview = computed(() => {
+  return (
+    !showDebug.value &&
+    (
+      route.query.pgload !== undefined ||
+      route.query.pggame !== undefined
+    ) &&
     route.query.pgscreen !== "combined"
-);
+  );
+});
 
-const previewError = ref("");
+// --------------------------------------------------
+// Preview state
+// --------------------------------------------------
+
+const previewOverview =
+  shallowRef<postGameOverview | null>(null);
+
+const previewGameId = ref<number | undefined>();
+
 const previewLoading = ref(false);
+const previewError = ref("");
 
-let lastRequest: string | null = null;
-
-async function loadPreview() {
-  if (!previewRequested.value) {
-    lastRequest = null;
-    return;
-  }
-
-  const game = route.query.pggame;
-  const requestKey = String(game ?? "current");
-
-  if (lastRequest === requestKey) return;
-
-  let selectedId: number | undefined;
-
-  if (game !== undefined) {
-    if (typeof game !== "string") {
-      previewError.value = "Invalid game ID.";
-      return;
-    }
-
-    selectedId = Number(game);
-
-    if (
-      !Number.isSafeInteger(selectedId) ||
-      selectedId <= 0
-    ) {
-      previewError.value = "Invalid game ID.";
-      return;
-    }
-  }
-
-  lastRequest = requestKey;
-
-  previewLoading.value = true;
-  previewError.value = "";
-
-  try {
-    await client.showPostGame(selectedId);
-  } catch (error) {
-    lastRequest = null;
-    previewError.value = String(error);
-
-    console.error(
-      "[FBE Postgame] Preview failed:",
-      error
-    );
-  } finally {
-    previewLoading.value = false;
-  }
-}
+// --------------------------------------------------
+// Preview data loading
+// --------------------------------------------------
 
 watch(
   [
+    showPreview,
     () => route.query.pggame,
-    () => route.query.pgload,
     isMocking,
   ],
-  () => {
-    if (
-      isMocking.value === undefined ||
-      previewLoading.value
-    ) {
+
+  async ([enabled, rawId, mocking], _, onCleanup) => {
+    let cancelled = false;
+
+    onCleanup(() => {
+      cancelled = true;
+    });
+
+    previewOverview.value = null;
+    previewGameId.value = undefined;
+    previewError.value = "";
+    previewLoading.value = false;
+
+    if (!enabled) return;
+
+    previewLoading.value = true;
+
+    // Wait for the backend's mocking state
+    // to become available.
+    if (mocking === undefined) {
       return;
     }
 
-    void loadPreview();
+    try {
+      let selectedId: number | undefined;
+
+      if (rawId !== undefined) {
+        if (
+          typeof rawId !== "string" ||
+          !rawId.trim()
+        ) {
+          throw new Error("Invalid game ID.");
+        }
+
+        selectedId = Number(rawId);
+
+        if (
+          !Number.isSafeInteger(selectedId) ||
+          selectedId <= 0
+        ) {
+          throw new Error("Invalid game ID.");
+        }
+      }
+
+        const postgameState = client.getPostGameData();
+
+        if (selectedId === undefined && !mocking) {
+        selectedId =
+            postgameState.activeComponent?.gameId ??
+            postgameState.gameId;
+        }
+
+        const result = await client.showPostGame(
+        selectedId,
+        );
+
+      if (cancelled) return;
+
+      // Use the response from this request rather
+      // than relying on whatever game happens to
+      // be in the reactive store.
+      previewOverview.value = result ?? null;
+
+      const storedId =
+        client.getPostGameData().gameId;
+
+      previewGameId.value =
+        selectedId ??
+        (
+          typeof storedId === "number"
+            ? storedId
+            : undefined
+        );
+
+      if (!previewOverview.value) {
+        previewError.value =
+          "No postgame overview was returned.";
+      }
+    } catch (error) {
+      if (cancelled) return;
+
+      previewError.value =
+        error instanceof Error
+          ? error.message
+          : String(error);
+
+      console.error(
+        "[FBE Postgame] Preview failed:",
+        error,
+      );
+    } finally {
+      if (!cancelled) {
+        previewLoading.value = false;
+      }
+    }
   },
-  { immediate: true }
+
+  { immediate: true },
 );
 </script>
 
 <template>
   <div class="postgame-view">
 
-    <!-- Development diagnostics -->
-    <PostGameDebug v-if="showDebug" />
+    <!-- Diagnostic dashboard -->
+    <PostGameDebug
+      v-if="showDebug"
+    />
 
-    <!-- Historical game / current game preview -->
-    <div
+    <!-- Explicit Game Results preview -->
+    <FbeGameResults
       v-else-if="showPreview"
-      class="postgame-preview"
-    >
-      <h1>FBE Postgame Preview</h1>
+      :overview="previewOverview"
+      :game-id="previewGameId"
+      :is-mocking="isMocking === true"
+      :loading="previewLoading"
+      :error="previewError"
+    />
 
-      <p v-if="previewLoading">
-        Loading game data...
-      </p>
-
-      <p v-else-if="previewError" class="preview-error">
-        {{ previewError }}
-      </p>
-
-      <template v-else>
-        <p>
-          Postgame active:
-          {{ isActive ? "Yes" : "No" }}
-        </p>
-
-        <p>
-          Overview available:
-          {{ overview ? "Yes" : "No" }}
-        </p>
-
-        <pre>{{ JSON.stringify(overview, null, 2) }}</pre>
-      </template>
-    </div>
-
-    <!-- Normal caster-controlled broadcast -->
-    <PostGameCombined v-else />
+    <!-- Normal caster-controlled overlay -->
+    <PostGameCombined
+      v-else
+    />
 
   </div>
 </template>
@@ -166,51 +205,11 @@ watch(
 <style scoped>
 .postgame-view {
   position: relative;
+
   width: 1920px;
   height: 1080px;
+
   overflow: hidden;
   background: transparent;
-}
-
-.postgame-preview {
-  position: absolute;
-  inset: 0;
-
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-
-  padding: 45px;
-
-  background: #08080a;
-  color: #f5f0eb;
-}
-
-.postgame-preview h1 {
-  font-size: 42px;
-  font-weight: 800;
-  color: #ff263f;
-}
-
-.postgame-preview p {
-  font-size: 20px;
-}
-
-.postgame-preview pre {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  white-space: pre-wrap;
-  padding: 20px;
-
-  background: #030305;
-  border: 1px solid #55202a;
-
-  font-family: monospace;
-  font-size: 16px;
-}
-
-.preview-error {
-  color: #ff7182;
 }
 </style>
