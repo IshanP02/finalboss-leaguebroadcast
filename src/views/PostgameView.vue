@@ -29,6 +29,9 @@ import FbeDamageBreakdown from
 import FbeGoldBreakdown from
   "@/components/PostGame/FbeGoldBreakdown.vue";
 
+import FbePlayerSpotlight from
+  "@/components/PostGame/FbePlayerSpotlight.vue";
+
 import {
   usePostGameSelector,
 } from "@/composables/usePostGame";
@@ -48,9 +51,80 @@ const showDebug = computed(
   () => route.query.debug === "true",
 );
 
+const playerPreviewMode = computed(() => {
+  if (showDebug.value) return null;
+
+  const requested =
+    route.query.pgload !== undefined ||
+    route.query.pggame !== undefined;
+
+  if (!requested) return null;
+
+  switch (route.query.pgscreen) {
+    case "mvp":
+      return "mvp";
+
+    case "spotlight":
+      return "spotlight";
+
+    case "performance":
+      return "performance";
+
+    default:
+      return null;
+  }
+});
+
+const previewPlayerIndex = computed(() => {
+  const raw = route.query.pgplayer;
+
+  if (raw === undefined) return 0;
+
+  if (
+    typeof raw !== "string" ||
+    !/^[0-9]+$/.test(raw)
+  ) {
+    return -1;
+  }
+
+  const index = Number(raw);
+
+  return index >= 0 && index <= 9
+    ? index
+    : -1;
+});
+
+const activePreviewGameId = usePostGameSelector(
+  (state) =>
+    state.postGameData.activeComponent?.gameId ??
+    state.postGameData.gameId
+);
+
+const playerPreviewGameId = computed(() => {
+  const raw = route.query.pggame;
+
+  if (raw === undefined) {
+    return activePreviewGameId.value;
+  }
+
+  if (
+    typeof raw !== "string" ||
+    !/^[0-9]+$/.test(raw)
+  ) {
+    return undefined;
+  }
+
+  const id = Number(raw);
+
+  return Number.isSafeInteger(id) && id > 0
+    ? id
+    : undefined;
+});
+
 const showPreview = computed(() => {
   return (
     !showDebug.value &&
+    !playerPreviewMode.value &&
     (
       route.query.pgload !== undefined ||
       route.query.pggame !== undefined
@@ -203,6 +277,26 @@ watch(
     <!-- Development diagnostics -->
     <PostGameDebug
       v-if="showDebug"
+    />
+
+    <!-- Phase 5: Player previews -->
+    <FbePlayerSpotlight
+    v-else-if="playerPreviewMode"
+        :key="
+            'player-preview-' +
+            playerPreviewMode + '-' +
+            playerPreviewGameId + '-' +
+            previewPlayerIndex
+        "
+        :game-id="playerPreviewGameId"
+        :player-index="previewPlayerIndex"
+        :is-mocking="isMocking"
+        :mode="
+            playerPreviewMode === 'performance'
+            ? 'performance'
+            : 'spotlight'
+        "
+        :award="playerPreviewMode === 'mvp'"
     />
 
     <!-- Damage preview -->

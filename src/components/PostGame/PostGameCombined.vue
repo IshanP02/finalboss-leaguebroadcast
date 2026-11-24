@@ -2,6 +2,7 @@
 import FbeGameResults from "./FbeGameResults.vue";
 import FbeDamageBreakdown from "./FbeDamageBreakdown.vue";
 import FbeGoldBreakdown from "./FbeGoldBreakdown.vue";
+import FbePlayerSpotlight from "./FbePlayerSpotlight.vue";
 
 import {
   computed,
@@ -57,7 +58,15 @@ const gameId = computed(
 );
 
 const playerIndex = computed(
-  () => activeComponent.value?.playerIndex ?? 0
+  () => activeComponent.value?.playerIndex ?? -1
+);
+
+const storedPostGameId = usePostGameSelector(
+  (state) => state.postGameData.gameId
+);
+
+const selectedPlayerGameId = computed(
+  () => gameId.value ?? storedPostGameId.value
 );
 
 const screenTitle = computed(() => {
@@ -238,6 +247,27 @@ watch(activeComponent, (component) => {
         :overview="resultsOverview"
         :loading="loading"
         :error="loadError"
+    />
+
+    <!-- Phase 5: Player of the Game -->
+    <FbePlayerSpotlight
+        v-else-if="componentName === 'postgame-player'"
+        :key="'spotlight-' + screenKey"
+        :game-id="selectedPlayerGameId"
+        :player-index="playerIndex"
+        :is-mocking="isMocking"
+        mode="spotlight"
+        :award="true"
+    />
+
+    <!-- Phase 5: Player Performance -->
+    <FbePlayerSpotlight
+        v-else-if="componentName === 'postgame-player-stats'"
+        :key="'performance-' + screenKey"
+        :game-id="selectedPlayerGameId"
+        :player-index="playerIndex"
+        :is-mocking="isMocking"
+        mode="performance"
     />
 
     <!-- Temporary placeholders for remaining phases -->

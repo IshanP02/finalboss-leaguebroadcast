@@ -54,7 +54,7 @@ function imageLoad(e: Event) { if (e.currentTarget instanceof HTMLImageElement) 
       <main class="frame-content"><slot /></main>
     </template>
     <div v-else class="empty"><i></i><h2>{{ error ? 'DATA UNAVAILABLE' : loading ? 'LOADING GAME DATA' : 'AWAITING GAME DATA' }}</h2><p v-if="error">{{ error }}</p></div>
-    <footer class="frame-footer"><span><i></i> POSTGAME // {{ section }}</span><strong>FINALBOSSESPORTS.NET</strong><span>FINAL BOSS ESPORTS</span></footer>
+    <footer class="frame-footer"><span><i></i> POSTGAME </span><strong>FINALBOSSESPORTS.NET</strong><span>FINAL BOSS ESPORTS</span></footer>
   </section>
 </template>
 
