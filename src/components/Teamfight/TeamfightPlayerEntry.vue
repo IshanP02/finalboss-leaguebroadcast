@@ -1,322 +1,433 @@
 <script setup lang="ts">
-import { useClient } from "@/client";
-import ProgressBar from "@/components/PlayerScoreboard/ProgressBar.vue";
-import { ResourceType, SpellSlotIndex, type damageGraphEntry, getRemaining } from "@bluebottle_gg/league-broadcast-client";
-import SpellWithCooldown from "../PlayerScoreboard/SpellWithCooldown.vue";
-import { computed } from "vue";
-import { useIngameSelector } from "@/composables/useIngame";
-import ItemWithCooldown from "../PlayerScoreboard/ItemWithCooldown.vue";
-import FadeTransition from "@/transitions/FadeTransition.vue";
+import { useClient } from '@/client'
+import ProgressBar from '@/components/PlayerScoreboard/ProgressBar.vue'
+import {
+  ResourceType,
+  SpellSlotIndex,
+  type damageGraphEntry,
+  formatDamage,
+  getRemaining,
+} from '@bluebottle_gg/league-broadcast-client'
+import SpellWithCooldown from '../PlayerScoreboard/SpellWithCooldown.vue'
+import { computed } from 'vue'
+import { useIngameSelector } from '@/composables/useIngame'
+import FadeTransition from '@/transitions/FadeTransition.vue'
+import { xpProgressPct } from '@/utils/xpProgress'
 
-const props = withDefaults(defineProps<{
-    mirror?: boolean;
-    data?: damageGraphEntry;
-}>(), {
+const props = withDefaults(
+  defineProps<{
+    mirror?: boolean
+    data?: damageGraphEntry
+  }>(),
+  {
     mirror: false,
-    data: undefined
-});
+    data: undefined,
+  },
+)
 
-const client = useClient();
-const gameTime = useIngameSelector((s) => s.gameData.gameTime);
-
-const respawnRemaining = computed(() => getRemaining(props.data?.respawnAt, gameTime.value));
-
-function formatDamage(value?: number) {
-  const damage = value ?? 0;
-
-  if (damage >= 1_000) return `${(damage / 1_000).toFixed(1).replace(".0", "")}k`;
-
-  return Math.round(damage).toString();
+// The backend now stamps damageGraphEntry (and the same-shaped
+// teamfightDamageOverview entries this component renders) with buff-uptime
+// flags. The published 1.7.0 client declaration has not added these fields
+// yet, so keep the compatibility extension local (mirrors TeamfightRecap.vue).
+type DamageGraphEntryWithBuffs = damageGraphEntry & {
+  hasBaron?: boolean
+  hasElder?: boolean
 }
 
-const fightDamage = computed(() => props.data?.totalDamageDealt ?? 0);
+const client = useClient()
+const gameTime = useIngameSelector((s) => s.gameData.gameTime)
+
+const respawnRemaining = computed(() => getRemaining(props.data?.respawnAt, gameTime.value))
 
 const spellD = computed(() => {
-    if (!props.data || !props.data.abilities || !props.data.abilities[SpellSlotIndex.D]) return undefined;
-    return props.data.abilities[SpellSlotIndex.D];
-});
+  if (!props.data || !props.data.abilities || !props.data.abilities[SpellSlotIndex.D])
+    return undefined
+  return props.data.abilities[SpellSlotIndex.D]
+})
 
 const spellF = computed(() => {
-    if (!props.data || !props.data.abilities || !props.data.abilities[SpellSlotIndex.F]) return undefined;
-    return props.data.abilities[SpellSlotIndex.F];
-});
+  if (!props.data || !props.data.abilities || !props.data.abilities[SpellSlotIndex.F])
+    return undefined
+  return props.data.abilities[SpellSlotIndex.F]
+})
 
 const spellR = computed(() => {
-    if (!props.data || !props.data.abilities || !props.data.abilities[SpellSlotIndex.R]) return undefined;
-    return props.data.abilities[SpellSlotIndex.R];
-});
+  if (!props.data || !props.data.abilities || !props.data.abilities[SpellSlotIndex.R])
+    return undefined
+  return props.data.abilities[SpellSlotIndex.R]
+})
 
 const healthPct = computed(() => {
-    if (!props.data) return 0;
-    return ((props.data.health?.current ?? 0) / (props.data.health?.max ?? 1)) * 100
-});
+  if (!props.data) return 0
+  return ((props.data.health?.current ?? 0) / (props.data.health?.max ?? 1)) * 100
+})
 
 const resourcePct = computed(() => {
-    if (!props.data) return 0;
-    return ((props.data.resource?.current ?? 0) / (props.data.resource?.max ?? 1)) * 100
-});
+  if (!props.data) return 0
+  return ((props.data.resource?.current ?? 0) / (props.data.resource?.max ?? 1)) * 100
+})
 
 const resourceColor = computed(() => {
-    //resource type might be a string, so parse it to enum if needed
-    const resourceType = typeof props.data?.resource?.type === "string"
-        ? ResourceType[props.data.resource.type as keyof typeof ResourceType]
-        : props.data?.resource?.type;
+  //resource type might be a string, so parse it to enum if needed
+  const resourceType =
+    typeof props.data?.resource?.type === 'string'
+      ? ResourceType[props.data.resource.type as keyof typeof ResourceType]
+      : props.data?.resource?.type
 
-    switch (resourceType) {
-        case ResourceType.mana: return "#1d4ed8";
-        case ResourceType.energy: return "#d6db29";
-        case ResourceType.none: return "transparent";
-        case ResourceType.shield: return "#A9A9A9";
-        case ResourceType.battlefury:
-        case ResourceType.dragonfury:
-        case ResourceType.rage:
-        case ResourceType.heat:
-        case ResourceType.gnarfury:
-        case ResourceType.ferocity:
-        case ResourceType.bloodwell: return "#bf0000";
-        case ResourceType.wind: return "#A9A9A9";
-        case ResourceType.unknown:
-        default: return "#1d4ed8";
-    }
-});
+  switch (resourceType) {
+    case ResourceType.mana:
+      return '#1d4ed8'
+    case ResourceType.energy:
+      return '#d6db29'
+    case ResourceType.none:
+      return 'transparent'
+    case ResourceType.shield:
+      return '#A9A9A9'
+    case ResourceType.battlefury:
+    case ResourceType.dragonfury:
+    case ResourceType.rage:
+    case ResourceType.heat:
+    case ResourceType.gnarfury:
+    case ResourceType.ferocity:
+    case ResourceType.bloodwell:
+      return '#bf0000'
+    case ResourceType.wind:
+      return '#A9A9A9'
+    case ResourceType.unknown:
+    default:
+      return '#1d4ed8'
+  }
+})
 
-const xpPct = computed(() => {
-    if (!props.data) return 0;
-    const previous = props.data.experience?.previousLevel ?? 0;
-    const next = props.data.experience?.nextLevel ?? 1;
-    const current = props.data.experience?.current ?? 0;
-    return ((current - previous) / (next - previous)) * 100;
-});
+const xpPct = computed(() => xpProgressPct(props.data?.experience))
+
+const buffBorderClass = computed(() => {
+  const data = props.data as DamageGraphEntryWithBuffs | undefined
+  const hasBaron = data?.hasBaron ?? false
+  const hasElder = data?.hasElder ?? false
+  if (hasBaron && hasElder) return 'buff-both'
+  if (hasBaron) return 'buff-baron'
+  if (hasElder) return 'buff-elder'
+  return ''
+})
 </script>
 
-
 <template>
-
-    <!-- Main grid: ult + spells + splash + bars on left 2 cols, items on right col -->
-    <div class="main-grid player-entry" :class="mirror ? 'mirrored' : ''" :style="{
-        filter: respawnRemaining > 0 ? 'grayscale(1)' : 'grayscale(0)',
-        transition: 'filter 0.5s ease'
-    }">
-        <!-- Ultimate icon: centered over the 2-col section -->
-        <div class="area-ult flex justify-center py-1">
-            <SpellWithCooldown v-if="spellR?.assets?.iconAsset" :ready-at="spellR?.readyAt"
-                :img="client.getCacheUrl(spellR?.assets?.iconAsset)" show-timer :skilled="spellR?.level > 0"
-                :total-cooldown="spellR?.totalCooldown" class="champion-icon rounded-full"
-                style="--cooldown-font-size: 32px" />
-            <div v-else class="champion-icon rounded-full"></div>
-        </div>
-
-        <!-- Spell icons: top-left 2 cells -->
-        <SpellWithCooldown :ready-at="spellD?.readyAt" :img="client.getCacheUrl(spellD?.assets?.iconAsset)" show-timer
-            skilled :total-cooldown="spellD?.totalCooldown" class="spell-icon area-spell1" />
-        <SpellWithCooldown :ready-at="spellF?.readyAt" :img="client.getCacheUrl(spellF?.assets?.iconAsset)" show-timer
-            skilled :total-cooldown="spellF?.totalCooldown" class="spell-icon area-spell2" />
-
-        <!-- Splash portrait -->
-        <div class="fight-damage" :class="{ mirrored: mirror }">
-        {{ formatDamage(fightDamage) }}
-        </div>
-        <div class="player-portrait bg-zinc-600 area-splash">
-            <img :src="client.getCacheUrl(data?.champion?.squareImg)" class="object-cover w-full h-full" />
-            <FadeTransition>
-                <span v-if="respawnRemaining > 0" class="respawn-timer">{{ Math.ceil(respawnRemaining) }}</span>
-            </FadeTransition>
-        </div>
-
-        <!-- Level + progress bars -->
-        <div class="area-bars flex h-7" :class="mirror ? 'flex-row-reverse' : 'flex-row'">
-            <div class="level-text" :style="{
-                borderLeft: mirror ? '1px solid rgba(255, 255, 255, 0.55)' : 'none',
-                borderRight: mirror ? 'none' : '1px solid rgba(255, 255, 255, 0.55)'
-            }">
-                {{ data?.level }}
-            </div>
-            <div class="flex-1 flex flex-col gap-0.5 p-0.5 area-progress">
-                <ProgressBar :progress-pct="xpPct" fill-color="#a78bfa" :mirror="mirror" class="flex-1" />
-                <ProgressBar :progress-pct="healthPct" fill-color="#22c55e" :mirror="mirror" class="flex-2" />
-                <ProgressBar :progress-pct="resourcePct" :fill-color="resourceColor" :mirror="mirror" class="flex-2" />
-            </div>
-        </div>
-
-        <!-- Items: all in one column -->
-        <div class="area-items flex flex-col">
-            <ItemWithCooldown v-for="(item, index) in data?.activeItems" :key="index" :item="item" class="item-slot "
-                :show-stacks="false" />
-        </div>
+  <!-- Main grid: ult on top, splash with D/F spells stacked beside it, bars + damage below -->
+  <div
+    class="main-grid"
+    :class="mirror ? 'mirrored' : ''"
+    :style="{
+      filter: respawnRemaining > 0 ? 'grayscale(1)' : 'grayscale(0)',
+      transition: 'filter 0.5s ease',
+    }"
+  >
+    <!-- Ultimate icon: centered over the full entry width -->
+    <div class="area-ult flex justify-center py-1">
+      <SpellWithCooldown
+        v-if="spellR?.assets?.iconAsset"
+        :ready-at="spellR?.readyAt"
+        :img="client.getCacheUrl(spellR?.assets?.iconAsset)"
+        show-timer
+        :skilled="spellR?.level > 0"
+        :is-toggled="spellR?.isToggled"
+        :total-cooldown="spellR?.totalCooldown"
+        class="champion-icon rounded-full"
+        style="--cooldown-font-size: 32px"
+      />
+      <div v-else class="champion-icon rounded-full"></div>
     </div>
 
+    <!-- Summoner spells: stacked beside the splash -->
+    <SpellWithCooldown
+      :ready-at="spellD?.readyAt"
+      :img="client.getCacheUrl(spellD?.assets?.iconAsset)"
+      show-timer
+      skilled
+      :is-toggled="spellD?.isToggled"
+      :total-cooldown="spellD?.totalCooldown"
+      class="spell-icon area-spell1"
+    />
+    <SpellWithCooldown
+      :ready-at="spellF?.readyAt"
+      :img="client.getCacheUrl(spellF?.assets?.iconAsset)"
+      show-timer
+      skilled
+      :is-toggled="spellF?.isToggled"
+      :total-cooldown="spellF?.totalCooldown"
+      class="spell-icon area-spell2"
+    />
+
+    <!-- Splash portrait -->
+    <div class="player-portrait bg-zinc-600 area-splash" :class="buffBorderClass">
+      <img
+        :src="client.getCacheUrl(data?.champion?.squareImg)"
+        class="object-cover w-full h-full"
+      />
+      <FadeTransition>
+        <span v-if="respawnRemaining > 0" class="respawn-timer">{{
+          Math.ceil(respawnRemaining)
+        }}</span>
+      </FadeTransition>
+    </div>
+
+    <!-- Level + progress bars -->
+    <div class="area-bars flex h-7" :class="mirror ? 'flex-row-reverse' : 'flex-row'">
+      <div
+        class="level-text"
+        :style="{
+          borderLeft: mirror ? '1px solid rgba(255, 255, 255, 0.55)' : 'none',
+          borderRight: mirror ? 'none' : '1px solid rgba(255, 255, 255, 0.55)',
+        }"
+      >
+        {{ data?.level }}
+      </div>
+      <div class="flex-1 flex flex-col gap-0.5 p-0.5 area-progress">
+        <ProgressBar :progress-pct="xpPct" fill-color="#a78bfa" :mirror="mirror" class="flex-1" />
+        <ProgressBar
+          :progress-pct="healthPct"
+          fill-color="#22c55e"
+          :mirror="mirror"
+          class="flex-2"
+        />
+        <ProgressBar
+          :progress-pct="resourcePct"
+          :fill-color="resourceColor"
+          :mirror="mirror"
+          class="flex-2"
+        />
+      </div>
+    </div>
+
+    <!-- Total damage dealt in the teamfight -->
+    <div v-if="data?.totalDamageDealt != null" class="area-damage">
+      <span class="damage-label">DMG</span>
+      <span class="damage-value">{{ formatDamage(data.totalDamageDealt) }}</span>
+    </div>
+  </div>
 </template>
 
-
 <style lang="css" scoped>
+.champion-icon {
+  /* Fixed size: the ult area now spans the full entry width, so a relative
+     width would balloon the icon. */
+  width: 44px;
+  aspect-ratio: 1 / 1;
+  transform: translateY(15%);
+  z-index: 2;
+}
+
+/*
+  3-column grid: splash on 2 cols, D/F spells stacked in the outer col.
+  Mirrored flips column order via grid-template-areas.
+*/
 .main-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: auto auto auto auto;
-    grid-template-areas:
-        "ult    ult    empty"
-        "spell1 spell2 items"
-        "damage damage items"
-        "splash splash items"
-        "bars   bars   items";
-
-    background:
-        linear-gradient(135deg, rgba(177, 18, 38, 0.14), transparent 48%),
-        repeating-linear-gradient(-16deg, rgba(255,255,255,0.028) 0 1px, transparent 1px 8px),
-        #050507;
-
-    border: 1px solid var(--theme-border-soft);
-    box-shadow:
-        inset 0 0 14px rgba(255, 38, 63, 0.1),
-        0 0 12px rgba(0,0,0,0.75);
-    overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-areas:
+    'ult    ult    ult   '
+    'splash splash spell1'
+    'splash splash spell2'
+    'bars   bars   bars  '
+    'damage damage damage';
 }
 
 .main-grid.mirrored {
-    grid-template-areas:
-        "empty ult    ult"
-        "items spell1 spell2"
-        "items damage damage"
-        "items splash splash"
-        "items bars   bars";
-}
-
-.champion-icon {
-    width: 80%;
-    aspect-ratio: 1 / 1;
-    transform: translateY(15%);
-    z-index: 2;
-    border: 2px solid rgba(255, 38, 63, 0.35);
-    box-shadow:
-        0 0 8px rgba(0,0,0,0.9),
-        0 0 10px rgba(255,38,63,0.18);
-    background: #050507;
+  grid-template-areas:
+    'ult    ult    ult   '
+    'spell1 splash splash'
+    'spell2 splash splash'
+    'bars   bars   bars  '
+    'damage damage damage';
 }
 
 .area-ult {
-    grid-area: ult;
-    background:
-        radial-gradient(circle at center, rgba(255, 38, 63, 0.12), transparent 65%);
+  grid-area: ult;
 }
 
 .area-spell1 {
-    grid-area: spell1;
+  grid-area: spell1;
 }
 
 .area-spell2 {
-    grid-area: spell2;
-}
-
-.spell-icon {
-    aspect-ratio: 1 / 1;
-    width: 100%;
-    border: 1px solid rgba(255, 38, 63, 0.3);
-    background: #050507;
-    box-shadow:
-        inset 0 0 8px rgba(255, 38, 63, 0.08),
-        0 0 8px rgba(0,0,0,0.8);
+  grid-area: spell2;
 }
 
 .area-splash {
-    grid-area: splash;
-    border-left: 1px solid rgba(255, 38, 63, 0.28);
-    border-right: 1px solid rgba(255, 38, 63, 0.28);
-    border-top: 1px solid rgba(255, 38, 63, 0.28);
-    background: #050507;
-}
-
-.player-portrait {
-    aspect-ratio: 1 / 1;
-    width: 100%;
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-}
-
-.player-portrait::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-        linear-gradient(180deg, transparent 55%, rgba(5,5,7,0.72)),
-        repeating-linear-gradient(-16deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 8px);
-    pointer-events: none;
+  grid-area: splash;
+  border-left: 1px solid rgba(255, 255, 255, 0.55);
+  border-right: 1px solid rgba(255, 255, 255, 0.55);
+  border-top: 1px solid rgba(255, 255, 255, 0.55);
 }
 
 .area-bars {
-    grid-area: bars;
-    border: 1px solid rgba(255, 38, 63, 0.28);
-    background:
-        linear-gradient(90deg, rgba(177,18,38,0.16), #050507 35%, #050507);
-    box-shadow: inset 0 0 10px rgba(255,38,63,0.08);
+  grid-area: bars;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background-color: black;
 }
 
-.area-items {
-    grid-area: items;
-    background:
-        linear-gradient(180deg, rgba(255,38,63,0.08), transparent),
-        #050507;
-    border-left: 1px solid rgba(255, 38, 63, 0.24);
-}
-
-.main-grid.mirrored .area-items {
-    border-left: none;
-    border-right: 1px solid rgba(255, 38, 63, 0.24);
-}
-
-.item-slot {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    border-bottom: 1px solid rgba(255, 38, 63, 0.16);
-    background: rgba(0,0,0,0.22);
-}
-
-.level-text {
-    font-family: "Bebas Neue", sans-serif;
-    width: calc(100% / 3);
-    background:
-        linear-gradient(180deg, var(--theme-red-dark), #050507);
-    color: var(--theme-text);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-shadow:
-        0 0 4px black,
-        0 0 8px rgba(255,38,63,0.45);
-    border-color: rgba(255, 38, 63, 0.28) !important;
-}
-
-.respawn-timer {
-    position: absolute;
-    color: var(--theme-text);
-    font-family: "Bebas Neue", sans-serif;
-    font-size: 32px;
-    z-index: 2;
-    text-shadow:
-        -1px -1px 0 #000,
-        1px -1px 0 #000,
-        -1px 1px 0 #000,
-        1px 1px 0 #000,
-        0 0 12px rgba(255,38,63,0.75);
-}
-
-.fight-damage {
+.area-damage {
   grid-area: damage;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 4px;
+  padding: 3px 4px;
+  background-color: black;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-top: none;
+}
 
-  color: white;
+.damage-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.damage-value {
   font-size: 15px;
   font-weight: 800;
   line-height: 1;
-  text-align: center;
+  color: white;
+}
 
-  padding: 2px 6px;
-  background: rgba(5, 5, 7, 0.9);
-  border-left: 1px solid rgba(255, 60, 60, 0.5);
-  border-right: 1px solid rgba(255, 60, 60, 0.5);
-  border-top: 1px solid rgba(255, 60, 60, 0.5);
+.spell-icon {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  border: 2px solid rgba(0, 0, 0, 0.6);
+}
 
-  text-shadow: 0 1px 2px black;
+.player-portrait {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.level-text {
+  font-weight: 800;
+  width: calc(100% / 3);
+  background-color: black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.respawn-timer {
+  position: absolute;
+  color: white;
+  font-weight: 800;
+  font-size: 32px;
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000;
+}
+
+/* Baron/elder buff indicator on the portrait frame — same visual language as
+   PlayerScoreboard/PlayerInfo.vue's buffBorderClass (pulsing colored border,
+   conic-gradient swirl when both buffs are active). */
+.buff-baron::before,
+.buff-elder::before,
+.buff-both::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.buff-baron::before {
+  border: 3px solid var(--baron-color);
+  animation: baron-pulse 3s ease-in-out infinite;
+}
+
+.buff-elder::before {
+  border: 3px solid var(--elder-color);
+  animation: elder-pulse 3s ease-in-out infinite;
+}
+
+.buff-both::before {
+  inset: 0;
+  background: conic-gradient(
+    from var(--swirl-angle),
+    var(--baron-color),
+    var(--elder-color),
+    var(--baron-color),
+    var(--elder-color),
+    var(--baron-color)
+  );
+  animation: swirl 6s linear infinite;
+  mask:
+    linear-gradient(
+      to bottom,
+      #000 3px,
+      transparent 0,
+      transparent calc(100% - 3px),
+      #000 calc(100% - 3px)
+    ),
+    linear-gradient(
+      to right,
+      #000 3px,
+      transparent 0,
+      transparent calc(100% - 3px),
+      #000 calc(100% - 3px)
+    );
+  mask-composite: add;
+  -webkit-mask:
+    linear-gradient(
+      to bottom,
+      #000 3px,
+      transparent 0,
+      transparent calc(100% - 3px),
+      #000 calc(100% - 3px)
+    ),
+    linear-gradient(
+      to right,
+      #000 3px,
+      transparent 0,
+      transparent calc(100% - 3px),
+      #000 calc(100% - 3px)
+    );
+  -webkit-mask-composite: source-over;
+}
+
+@property --swirl-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes baron-pulse {
+  0%,
+  100% {
+    border-color: oklch(from var(--baron-color) l c h / 0.3);
+  }
+
+  50% {
+    border-color: oklch(from var(--baron-color) l c h / 1);
+  }
+}
+
+@keyframes elder-pulse {
+  0%,
+  100% {
+    border-color: oklch(from var(--elder-color) l c h / 0.3);
+  }
+
+  50% {
+    border-color: oklch(from var(--elder-color) l c h / 1);
+  }
+}
+
+@keyframes swirl {
+  to {
+    --swirl-angle: 360deg;
+  }
 }
 </style>

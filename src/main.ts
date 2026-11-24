@@ -9,6 +9,11 @@ import { ClientKey, defaultClientConfig } from "./client";
 
 const client = new LeagueBroadcastClient(defaultClientConfig);
 
+Object.assign(window, { lbClient: client });
+
+console.log("[FBE] main.ts is executing");
+console.log("[FBE] Client instance:", client);
+
 const app = createApp(App);
 app.provide(ClientKey, client);
 

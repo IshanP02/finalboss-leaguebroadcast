@@ -1,201 +1,35 @@
-﻿<script setup lang="ts">
-import { BestOfType, ingameScoreboardTeamData } from "@bluebottle_gg/league-broadcast-client";
-import MatchScore from "./MatchScore.vue";
-import { useClient } from "@/client";
-import TextWithIcon from "./TextWithIcon.vue";
-import Gold from "@/assets/gold.png";
-import Tower from "@/assets/tower.png";
-import { computed, ref, watch } from "vue";
-import FadeTransition from "../../transitions/FadeTransition.vue";
-import { handleImageError, handleImageLoad } from "@/utils/imageUtils";
-
-
-const props = defineProps<{
-    team: ingameScoreboardTeamData
-    bestOf: BestOfType
-    mirror?: boolean
-    enemyTeamGold?: number
-}>()
-
-const client = useClient();
-
-const formattedGold = computed(() => {
-    const gold = props.team.gold;
-    if (gold >= 1000) {
-        return (gold / 1000).toFixed(1) + "K";
-    }
-    return gold.toString();
-})
-
-const goldDiff = computed(() => {
-    if (props.enemyTeamGold === undefined) return null;
-    const diff = props.team.gold - props.enemyTeamGold;
-    return Math.floor(diff);
-})
-
-const goldDiffText = computed(() => {
-    const diff = goldDiff.value;
-    if (diff === null || diff <= 0) return "";
-    const formattedDiff = diff >= 1000 ? (diff / 1000).toFixed(1) + "K" : diff.toString();
-    return "+" + formattedDiff;
-})
-
-// Hysteresis: show above 500, hide below 300 - prevent flickering
-const SHOW_THRESHOLD = 500;
-const HIDE_THRESHOLD = 300;
-const showGoldDiff = ref(false);
-
-watch(goldDiff, (diff) => {
-    if (diff === null || diff <= 0) {
-        showGoldDiff.value = false;
-    } else if (diff > SHOW_THRESHOLD) {
-        showGoldDiff.value = true;
-    } else if (diff < HIDE_THRESHOLD) {
-        showGoldDiff.value = false;
-    }
-    // Between HIDE_THRESHOLD and SHOW_THRESHOLD: keep current state
-}, { immediate: true })
-
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue';
+import type { BestOfType, ingameScoreboardTeamData } from '@bluebottle_gg/league-broadcast-client';
+import { useClient } from '@/client';
+import MatchScore from './MatchScore.vue';
+import Gold from '@/assets/gold.png';
+import Tower from '@/assets/tower.png';
+import { handleImageError, handleImageLoad } from '@/utils/imageUtils';
+const props=defineProps<{team:ingameScoreboardTeamData;bestOf:BestOfType;mirror?:boolean;enemyTeamGold?:number}>();
+const client=useClient();
+const formattedGold=computed(()=>props.team.gold>=1000?`${(props.team.gold/1000).toFixed(1)}K`:String(Math.floor(props.team.gold)));
+const goldDiff=computed(()=>props.enemyTeamGold===undefined?null:Math.floor(props.team.gold-props.enemyTeamGold));
+const goldDiffText=computed(()=>{const diff=goldDiff.value;return diff===null||diff<=0?'':`+${diff>=1000?(diff/1000).toFixed(1)+'K':diff}`;});
+const showGoldDiff=ref(false);
+watch(goldDiff,diff=>{if(diff===null||diff<300)showGoldDiff.value=false;else if(diff>500)showGoldDiff.value=true;},{immediate:true});
+const sideColor=computed(()=>props.mirror?'#ff5064':'#69a1ff');
 </script>
-
 <template>
-    <div class="w-full h-full flex items-center py-1 px-1 gap-2.5" :class="mirror ? 'flex-row-reverse' : 'flex-row'">
-        <MatchScore
-        class="self-stretch"
-        :best-of="bestOf"
-        :fill-color="mirror ? '#ff263f' : '#3d8bff'"
-        :wins="team.seriesScore?.wins ?? 0"
-        :mirror="mirror"
-        />
-        <img v-if="team.teamIconUrl" :src="client.getCacheUrl(team.teamIconUrl)" alt="Team icon"
-            class="max-h-4/5 w-auto " @error="handleImageError" @load="handleImageLoad" />
-        <div class="flex flex-col" :style="{
-            textAlign: mirror ? 'right' : 'left'
-        }">
-            <p class="font-extrabold text-xl" :style="{
-                'color': mirror ? 'var(--red-team-color)' : 'var(--blue-team-color)'
-            }">{{ team.teamTag }}</p>
-            <p class="font-bold overflow-clip whitespace-nowrap text-ellipsis text-sm">{{ team.infoText }}</p>
-        </div>
-        <TextWithIcon class="-translate-y-1" :class="mirror ? ['pr-2'] : ['pl-2']" :icon-url="Tower"
-            :text="team.towers.toString()" :mirror="mirror" />
-        <div class="relative flex flex-col items-start">
-            <TextWithIcon :class="mirror ? ['pr-2'] : ['pl-2']" :icon-url="Gold" :text="formattedGold"
-                :mirror="mirror" />
-            <FadeTransition name="fade" mode="out-in">
-                <div id="gold-diff" v-if="showGoldDiff" class="absolute top-1 w-10 h-6 text-center" :style="{
-                    'background-color': mirror ? 'var(--red-team-color)' : 'var(--blue-team-color)',
-                    'left': mirror ? 'auto' : '40px',
-                    color: 'white',
-                }">
-                    <span class="spcing text-stretch-vertical capitalize">{{
-                        goldDiffText }}</span>
-                </div>
-            </FadeTransition>
-        </div>
-        <span class="text-3xl font-extrabold spcing tracking-tight text-stretch-vertical capitalize"
-            :class="mirror ? 'mr-auto ml-2' : 'ml-auto mr-2 '">{{ team.kills
-            }}</span>
-
-    </div>
+  <div class="team-row" :class="{mirror}" :style="{'--side':sideColor}">
+    <MatchScore class="series" :best-of="bestOf" :fill-color="sideColor" :wins="team.seriesScore?.wins??0" :mirror="mirror"/>
+    <div class="team-logo"><span>{{team.teamTag}}</span><img v-if="team.teamIconUrl" :key="team.teamIconUrl" :src="client.getCacheUrl(team.teamIconUrl)" :alt="team.teamTag" @error="handleImageError" @load="handleImageLoad"/></div>
+    <div class="identity"><strong>{{team.teamTag}}</strong><small>{{team.infoText}}</small></div>
+    <div class="tower stat"><img :src="Tower" alt="Towers"/><b>{{team.towers}}</b></div>
+    <div class="economy"><div class="stat gold"><img :src="Gold" alt="Gold"/><b>{{formattedGold}}</b></div><div class="lead"><span v-if="showGoldDiff">{{goldDiffText}}</span></div></div>
+    <div class="kills"><strong>{{team.kills}}</strong><small>KILLS</small></div>
+  </div>
 </template>
-
-<style lang="css" scoped>
-:deep(.text-with-icon),
-:deep(span),
-p {
-    color: var(--theme-text);
-    text-shadow: 0 0 4px black;
-}
-
-.w-full {
-    position: relative;
-    overflow: hidden;
-    background:
-        linear-gradient(
-            90deg,
-            rgba(177, 18, 38, 0.24),
-            rgba(5, 5, 7, 0.95) 28%,
-            rgba(5, 5, 7, 1) 70%,
-            rgba(177, 18, 38, 0.14)
-        );
-    border-inline-start: 3px solid var(--theme-red);
-    box-shadow:
-        inset 0 0 14px rgba(255, 38, 63, 0.14),
-        inset 0 -1px 0 rgba(255, 38, 63, 0.22);
-}
-
-.w-full.flex-row-reverse {
-    background:
-        linear-gradient(
-            270deg,
-            rgba(177, 18, 38, 0.24),
-            rgba(5, 5, 7, 0.95) 28%,
-            rgba(5, 5, 7, 1) 70%,
-            rgba(177, 18, 38, 0.14)
-        );
-    border-inline-start: none;
-    border-inline-end: 3px solid var(--theme-red-bright);
-}
-
-.w-full::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-        repeating-linear-gradient(
-            -16deg,
-            rgba(255, 255, 255, 0.035) 0px,
-            rgba(255, 255, 255, 0.035) 1px,
-            transparent 1px,
-            transparent 8px
-        );
-    opacity: 0.55;
-}
-
-img {
-    filter: drop-shadow(0 0 6px rgba(255, 38, 63, 0.35));
-    z-index: 1;
-}
-
-p,
-span,
-:deep(*) {
-    position: relative;
-    z-index: 1;
-}
-
-p.font-extrabold {
-    color: var(--theme-red-bright) !important;
-    text-shadow:
-        0 0 4px black,
-        0 0 10px rgba(255, 38, 63, 0.55);
-    letter-spacing: 0.04em;
-}
-
-p.font-bold {
-    color: var(--theme-muted);
-    letter-spacing: 0.03em;
-}
-
-.text-3xl {
-    color: var(--theme-text);
-    text-shadow:
-        0 0 4px black,
-        0 0 12px rgba(255, 38, 63, 0.65);
-}
-
-#gold-diff {
-    background: linear-gradient(90deg, var(--theme-red-dark), var(--theme-red-bright)) !important;
-    border: 1px solid var(--theme-border);
-    box-shadow: 0 0 10px rgba(255, 38, 63, 0.45);
-    clip-path: polygon(8% 0, 100% 0, 92% 100%, 0% 100%);
-}
-
-.text-stretch-vertical {
-    font-family: 'Bebas Neue';
-    display: inline-block;
-    transform: scale(1, 1.5);
-}
+<style scoped>
+.team-row{display:flex;align-items:center;gap:6px;padding:6px;min-width:0;height:100%;box-sizing:border-box;overflow:hidden;background:repeating-linear-gradient(-14deg,#ffffff04 0 1px,transparent 1px 9px),linear-gradient(100deg,color-mix(in srgb,var(--side) 17%,#0c0c11),#0c0c11 78%);border-left:3px solid var(--side);color:#f5f0eb}
+.team-row.mirror{flex-direction:row-reverse;text-align:right;border-left:0;border-right:3px solid var(--side);background:repeating-linear-gradient(14deg,#ffffff04 0 1px,transparent 1px 9px),linear-gradient(260deg,color-mix(in srgb,var(--side) 17%,#0c0c11),#0c0c11 78%)}
+.series{flex:0 0 25px;height:100%;align-self:stretch}.team-logo{position:relative;display:grid;place-items:center;flex:0 0 49px;height:49px;color:var(--side);font-size:14px;font-weight:900;overflow:hidden;text-align:center}.team-logo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 3px 5px #0008)}.team-logo:has(img:not([style*="hidden"]):not([style*="display: none"])) span{visibility:hidden}
+.identity{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}.identity strong{color:var(--side);font:900 22px/1 Rajdhani,Inter,Arial,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.identity small{font-size:11px;line-height:1.1;color:#a99fa2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.stat{display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;font-weight:900}.stat img{width:19px;height:19px;object-fit:contain}.stat b{font:900 23px/1 'Bebas Neue',Rajdhani,Arial,sans-serif}.tower{flex:0 0 39px}.economy{flex:0 0 74px;display:flex;flex-direction:column;align-items:center;gap:2px}.gold b{color:#f2d5a7}.lead{height:16px;display:flex;align-items:center;justify-content:center}.lead span{font-size:12px;line-height:14px;padding:0 5px;font-weight:900;white-space:nowrap;color:var(--side);border:1px solid color-mix(in srgb,var(--side) 45%,transparent);background:color-mix(in srgb,var(--side) 12%,#101014)}
+.kills{display:flex;flex-direction:column;justify-content:center;align-items:center;flex:0 0 47px;height:100%;background:#ffffff06;border-inline-start:1px solid #ffffff14}.mirror .kills{border-inline-start:0;border-inline-end:1px solid #ffffff14}.kills strong{font:900 40px/.95 'Bebas Neue',Rajdhani,Arial,sans-serif}.kills small{color:#a99fa2;font-size:9px;font-weight:800;letter-spacing:1.2px}.mirror .stat{flex-direction:row-reverse}
 </style>

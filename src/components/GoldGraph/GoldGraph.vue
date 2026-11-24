@@ -1,589 +1,68 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import { useIngameSelector } from "../../composables/useIngame";
-import { useClient } from "@/client";
-import { handleImageError, handleImageLoad } from "@/utils/imageUtils";
-import SlideTransition from "@/transitions/SlideTransition.vue";
-
-const client = useClient();
-const scoreboard = useIngameSelector((s) => s.gameData.scoreboard);
-const blueTeam = computed(() => scoreboard.value?.teams[0]);
-const redTeam = computed(() => scoreboard.value?.teams[1]);
-
-const goldGraph = useIngameSelector((s) => s.gameData.goldGraph);
-
-/**
- * Parse the gold data into a per-team gold-difference series suitable for SVG rendering.
- * `goldAtTime` is keyed by game-time (seconds), each value is a map of teamId → gold.
- */
-const series = computed(() => {
-    const current = goldGraph.value?.current;
-    if (!current?.goldAtTime) return null;
-
-    const entries = Object.entries(current.goldAtTime)
-        .map(([time, teams]) => ({ time: Number(time), teams }))
-        .sort((a, b) => a.time - b.time);
-
-    if (entries.length < 2) return null;
-
-    // Team IDs from the data (usually 0 and 1)
-    const teamIds = Object.keys(entries[0]?.teams ?? {}).map(Number);
-    if (teamIds.length < 2) return null;
-
-    const [t0, t1] = teamIds;
-    const teamNames = current.teams ?? {};
-
-    //prevent undefined t0 or t1 by defaulting to 0
-    if (t0 === undefined || isNaN(t0) || t1 === undefined || isNaN(t1)) {
-        console.warn("Invalid team IDs in gold graph data, defaulting to 0 and 1");
-        return null;
-    }
-
-    // Compute gold difference: positive = team 0 ahead
-    const points = entries.map((e) => ({
-        time: e.time,
-        diff: (e.teams[t0] ?? 0) - (e.teams[t1] ?? 0),
-    }));
-
-    const maxTime = points[points.length - 1]?.time ?? 0;
-    const maxAbsDiff = Math.max(...points.map((p) => Math.abs(p.diff)), 1);
-
-    return { points, maxTime, maxAbsDiff, teamNames, teamIds: [t0, t1] as const };
-});
-
-/**
- * Stable display series — only updated when the data meaningfully changes.
- * Prevents all downstream computeds from re-running every 0.5 s tick when
- * the server sends an identical snapshot.
- */
-const displaySeries = ref<typeof series.value>(null);
-
-/** Info for the "draw-in" animation when a single new point arrives. */
-const newSegmentInfo = ref<{
-    path: string;
-    length: number;
-    color: string;
-} | null>(null);
-let _segKey = 0;
-const newSegmentAnimKey = ref(0);
-
-watch(
-    series,
-    (next) => {
-        if (!next) {
-            displaySeries.value = null;
-            newSegmentInfo.value = null;
-            return;
-        }
-        const prev = displaySeries.value;
-        const changed =
-            !prev ||
-            prev.points.length !== next.points.length ||
-            prev.maxAbsDiff !== next.maxAbsDiff ||
-            prev.points.at(-1)?.diff !== next.points.at(-1)?.diff;
-
-        if (!changed) return;
-
-        // Animate the new segment drawing in when exactly one point was added.
-        if (prev && next.points.length === prev.points.length + 1) {
-            const newPts = next.points.map((p) =>
-                toSvg(p.time, p.diff, next.maxTime, next.maxAbsDiff)
-            );
-            const p1 = newPts[newPts.length - 2]!;
-            const p2 = newPts[newPts.length - 1]!;
-            const len = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-            const diff = next.points.at(-1)!.diff;
-            newSegmentInfo.value = {
-                path: `M${p1.x},${p1.y} L${p2.x},${p2.y}`,
-                length: Math.max(len, 1),
-                color: diff >= 0 ? "rgba(100,160,255,0.95)" : "rgba(255,100,100,0.95)",
-            };
-            newSegmentAnimKey.value = ++_segKey;
-        } else {
-            newSegmentInfo.value = null;
-        }
-
-        displaySeries.value = next;
-    },
-    { immediate: true }
-);
-
-// SVG viewBox dimensions — wide and short for a broadcast bar
-const WIDTH = 700;
-const HEIGHT = 175;
-const PADDING_X = 5;
-const GRAPH_TOP = 10;
-const GRAPH_BOTTOM = 150;
-const MID_Y = (GRAPH_TOP + GRAPH_BOTTOM) / 2;
-const GRAPH_HEIGHT = GRAPH_BOTTOM - GRAPH_TOP;
-
-/** Map a data point to SVG coordinates. */
-function toSvg(
-    time: number,
-    diff: number,
-    maxTime: number,
-    maxAbsDiff: number
-): { x: number; y: number } {
-    const x = PADDING_X + (time / maxTime) * (WIDTH - 2 * PADDING_X);
-    const y = MID_Y - (diff / maxAbsDiff) * (GRAPH_HEIGHT / 2);
-    return { x, y };
-}
-
-/** Convert all data points to SVG coordinates. */
-const svgPoints = computed(() => {
-    if (!displaySeries.value) return [];
-    const { points, maxTime, maxAbsDiff } = displaySeries.value;
-    return points.map((p) => toSvg(p.time, p.diff, maxTime, maxAbsDiff));
-});
-
-/** Build an SVG path string from the gold-difference points. */
-const pathD = computed(() => {
-    const pts = svgPoints.value;
-    if (pts.length === 0) return "";
-    return pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
-});
-
-/**
- * Build a fill path for one side of the zero line.
- * Inserts interpolated zero-crossing points so the fill edge
- * matches the actual data line exactly where it crosses MID_Y.
- */
-function buildFillPath(pts: Array<{ x: number; y: number }>, side: "blue" | "red"): string {
-    if (pts.length === 0) return "";
-    const clamp = side === "blue"
-        ? (y: number) => Math.min(y, MID_Y)
-        : (y: number) => Math.max(y, MID_Y);
-
-    const segments: string[] = [];
-
-    for (let i = 0; i < pts.length; i++) {
-        const curr = pts[i]!;
-
-        // Check for a zero crossing between previous and current point
-        if (i > 0) {
-            const prev = pts[i - 1]!;
-            if ((prev.y < MID_Y && curr.y > MID_Y) || (prev.y > MID_Y && curr.y < MID_Y)) {
-                const t = (MID_Y - prev.y) / (curr.y - prev.y);
-                const crossX = prev.x + t * (curr.x - prev.x);
-                segments.push(`L${crossX},${MID_Y}`);
-            }
-        }
-
-        const cy = clamp(curr.y);
-        segments.push(`${i === 0 ? "M" : "L"}${curr.x},${cy}`);
-    }
-
-    // Close back along the zero line
-    const lastX = pts[pts.length - 1]!.x;
-    const firstX = pts[0]!.x;
-    segments.push(`L${lastX},${MID_Y} L${firstX},${MID_Y} Z`);
-    return segments.join(" ");
-}
-
-const fillPathBlue = computed(() => buildFillPath(svgPoints.value, "blue"));
-const fillPathRed = computed(() => buildFillPath(svgPoints.value, "red"));
-
-/**
- * Split the line into colored segments: blue when team 0 leads, red otherwise.
- * Inserts interpolated crossing points so each segment starts/ends exactly on MID_Y.
- */
-const coloredSegments = computed(() => {
-    const pts = svgPoints.value;
-    const diffs = displaySeries.value?.points.map((p) => p.diff) ?? [];
-    if (pts.length === 0) return [];
-
-    const out: Array<{ d: string; color: string }> = [];
-    let color = (diffs[0] ?? 0) >= 0 ? "blue" : "red";
-    let seg: string[] = [`M${pts[0]!.x},${pts[0]!.y}`];
-
-    for (let i = 1; i < pts.length; i++) {
-        const prev = pts[i - 1]!;
-        const curr = pts[i]!;
-        const pd = diffs[i - 1] ?? 0;
-        const cd = diffs[i] ?? 0;
-
-        if ((pd >= 0) !== (cd >= 0)) {
-            const t = pd / (pd - cd);
-            const cx = prev.x + t * (curr.x - prev.x);
-            seg.push(`L${cx},${MID_Y}`);
-            out.push({ d: seg.join(" "), color });
-            color = cd >= 0 ? "blue" : "red";
-            seg = [`M${cx},${MID_Y}`];
-        }
-
-        seg.push(`L${curr.x},${curr.y}`);
-    }
-
-    if (seg.length > 1) out.push({ d: seg.join(" "), color });
-    return out;
-});
-
-function formatGoldShort(val: number): string {
-    const abs = Math.abs(val);
-    const sign = val > 0 ? "+" : "-";
-    if (abs >= 1000) return `${sign}${(abs / 1000).toFixed(1)}k`;
-    return `${sign}${abs.toFixed(0)}`;
-}
-
-/** Scale labels: max gold advantage at top (blue) and bottom (red). */
-const scaleLabels = computed(() => {
-    if (!displaySeries.value) return { top: "", bottom: "" };
-    const max = displaySeries.value.maxAbsDiff;
-    return {
-        top: formatGoldShort(max),
-        bottom: formatGoldShort(-max),
-    };
-});
-
-/** Notable local extrema — significant, well-spaced peaks/valleys. */
-const notableExtrema = computed(() => {
-    if (!displaySeries.value) return [];
-    const { points, maxTime, maxAbsDiff } = displaySeries.value;
-    if (points.length < 3) return [];
-
-    /**
-     * Topographic prominence: how far a peak/valley stands out from the
-     * surrounding terrain before being "absorbed" by a higher peak / deeper valley.
-     *
-     * For a peak at value v:
-     *   Scan left until a point strictly exceeds v → key col = min value in that span
-     *   Scan right similarly → key col = min value in that span
-     *   Prominence = v − max(leftKeyCol, rightKeyCol)
-     *
-     * For a valley, the same logic inverted.
-     * This correctly suppresses bumps on rising/falling slopes while surfacing
-     * true reversals (including brief dips into the opposing team's lead).
-     */
-    function computeProminence(idx: number): number {
-        const v = points[idx]!.diff;
-        if (v === 0) return 0;
-        if (v > 0) {
-            let leftMin = v;
-            for (let i = idx - 1; i >= 0; i--) {
-                const d = points[i]!.diff;
-                if (d > v) break;
-                if (d < leftMin) leftMin = d;
-            }
-            let rightMin = v;
-            for (let i = idx + 1; i < points.length; i++) {
-                const d = points[i]!.diff;
-                if (d > v) break;
-                if (d < rightMin) rightMin = d;
-            }
-            return v - Math.max(leftMin, rightMin);
-        } else {
-            let leftMax = v;
-            for (let i = idx - 1; i >= 0; i--) {
-                const d = points[i]!.diff;
-                if (d < v) break;
-                if (d > leftMax) leftMax = d;
-            }
-            let rightMax = v;
-            for (let i = idx + 1; i < points.length; i++) {
-                const d = points[i]!.diff;
-                if (d < v) break;
-                if (d > rightMax) rightMax = d;
-            }
-            return Math.min(leftMax, rightMax) - v;
-        }
-    }
-
-    const minProminence = Math.max(300, maxAbsDiff * 0.1);
-    const minSpacing = (WIDTH - 2 * PADDING_X) * 0.1;
-
-    const candidates: Array<{ x: number; y: number; diff: number; prominence: number }> = [];
-
-    for (let i = 1; i < points.length - 1; i++) {
-        const prev = points[i - 1]!.diff;
-        const curr = points[i]!.diff;
-        const next = points[i + 1]!.diff;
-        if (curr > prev && curr > next || curr < prev && curr < next) {
-            const prominence = computeProminence(i);
-            if (prominence >= minProminence) {
-                const { x, y } = toSvg(points[i]!.time, curr, maxTime, maxAbsDiff);
-                candidates.push({ x, y, diff: curr, prominence });
-            }
-        }
-    }
-
-    candidates.sort((a, b) => b.prominence - a.prominence);
-
-    const chosen: typeof candidates = [];
-    for (const c of candidates) {
-        if (chosen.length >= 6) break;
-        if (chosen.every((e) => Math.abs(e.x - c.x) >= minSpacing)) {
-            chosen.push(c);
-        }
-    }
-
-    // Text is ~8px tall, ~22px wide at most. Keep labels inside the graph area.
-    const LABEL_H = 9;
-    const LABEL_HALF_W = 14;
-    const TOP_MARGIN = GRAPH_TOP + LABEL_H + 2;    // enough room above
-    const BOT_MARGIN = GRAPH_BOTTOM - 3;            // don't enter the time-label strip
-
-    return chosen.map((c) => {
-        const isBlue = c.diff >= 0;
-        // Preferred offset: 5px above peak for blue, 12px below valley for red
-        const rawLabelY = isBlue ? c.y - 5 : c.y + LABEL_H;
-        const labelY = Math.max(TOP_MARGIN, Math.min(BOT_MARGIN, rawLabelY));
-        // Clamp X so text never overflows left or right edge
-        const labelX = Math.max(PADDING_X + LABEL_HALF_W, Math.min(WIDTH - PADDING_X - LABEL_HALF_W, c.x));
-        return { ...c, labelX, labelY };
-    });
-});
-
-/** Vertical reference lines at every 5-minute mark. */
-const verticalLines = computed(() => {
-  if (!displaySeries.value) return [];
-
-  const { maxTime } = displaySeries.value;
-  const lines: Array<{ x: number; label: string }> = [];
-
-  for (let t = 300; t < maxTime; t += 300) {
-    const x = PADDING_X + (t / maxTime) * (WIDTH - 2 * PADDING_X);
-    lines.push({ x, label: formatGoldShort(Math.round(t / 60)) });
-  }
-
-  return lines;
-});
-
-
+import { computed, useId } from 'vue';
+import { useIngameSelector } from '@/composables/useIngame';
+import { useClient } from '@/client';
+import fbeLogo from '@/assets/72x72.png';
+import SlideTransition from '@/transitions/SlideTransition.vue';
+import {buildLiveGold,previewGold} from './liveGoldData';
+const props=defineProps<{preview?:boolean}>();
+const client=useClient();
+const gold=useIngameSelector(s=>s.gameData.goldGraph);
+const scoreboard=useIngameSelector(s=>s.gameData.scoreboard);
+const blue=computed(()=>scoreboard.value?.teams[0]);
+const red=computed(()=>scoreboard.value?.teams[1]);
+const tags=computed(()=>props.preview?['BLUE','RED']:[blue.value?.teamTag||'BLUE',red.value?.teamTag||'RED']);
+const teams = computed(() => [blue.value, red.value].map((team, i) => ({
+  tag: tags.value[i] ?? (i === 0 ? 'BLUE' : 'RED'),
+  logo: team?.teamIconUrl ? client.getCacheUrl(team.teamIconUrl) : undefined,
+  side: i === 0 ? 'blue' : 'red',
+})));
+const samples=computed(()=>props.preview?previewGold():buildLiveGold(gold.value?.current?.goldAtTime));
+const visible=computed(()=>samples.value.length>=2);
+const last=computed(()=>samples.value.at(-1));
+const high=computed(()=>Math.max(0,...samples.value.map(p=>p.diff)));
+const low=computed(()=>Math.min(0,...samples.value.map(p=>p.diff)));
+const changes=computed(()=>{let prev=0,n=0;for(const p of samples.value){const s=Math.sign(p.diff);if(s){if(prev&&prev!==s)n++;prev=s;}}return n;});
+const range=computed(()=>{const target=Math.max(1000,high.value,-low.value)/2;const mag=10**Math.floor(Math.log10(target));return 2*([1,2,2.5,5,10].find(n=>n*mag>=target)??10)*mag});
+const end=computed(()=>Math.max(1,last.value?.time??0));
+const L=70,R=1135,T=12,B=166,M=(T+B)/2;
+const x=(t:number)=>L+t/end.value*(R-L);const y=(d:number)=>M-d/range.value*(B-T)/2;
+const line=computed(()=>samples.value.map((p,i)=>`${i?'L':'M'}${x(p.time).toFixed(2)},${y(p.diff).toFixed(2)}`).join(' '));
+const area=computed(()=>{const f=samples.value[0],l=last.value;return f&&l?`${line.value} L${x(l.time)},${M} L${x(f.time)},${M} Z`:''});
+const timeTicks=computed(()=>{const step=Math.max(1,Math.ceil(end.value/300/7))*300;const t=[0];for(let v=step;v<end.value-step*.25;v+=step)t.push(v);t.push(end.value);return t;});
+const format=(n:number)=>Math.abs(n)>=1000?`${(Math.abs(n)/1000).toFixed(1)}K`:Math.round(Math.abs(n)).toLocaleString('en-US');
+const signed=(n:number)=>n===0?'0':`${n>0?'+':'−'}${format(n)}`;
+const time=(n:number)=>`${Math.floor(n/60)}:${String(Math.floor(n%60)).padStart(2,'0')}`;
+const leader=computed(()=>!last.value||last.value.diff===0?'TIED':last.value.diff>0?tags.value[0]:tags.value[1]);
+const id=useId().replace(/[^a-zA-Z0-9_-]/g,'');const blueClip=`${id}-b`,redClip=`${id}-r`;
+function hide(e:Event){if(e.currentTarget instanceof HTMLImageElement)e.currentTarget.style.visibility='hidden';}function show(e:Event){if(e.currentTarget instanceof HTMLImageElement)e.currentTarget.style.visibility='visible';}
 </script>
-
 <template>
-    <SlideTransition>
-        <div v-if="goldGraph" class="gold-graph-container">
-            <div class="title-container">
-                <div class="-translate-y-10 flex flex-row justify-between w-full items-center">
-                    <span class="title-text">Gold Graph</span>
-                    <span class="title-arrow ml-auto">&#8250;</span>
-                </div>
-            </div>
-
-            <div class="team-info-container">
-                <img v-if="blueTeam?.teamIconUrl" :src="client.getCacheUrl(blueTeam.teamIconUrl)" class="team-icon"
-                    style="border-left: 2px solid var(--blue-team-color);" alt="Blue team" @error="handleImageError"
-                    @load="handleImageLoad" />
-                <img v-if="redTeam?.teamIconUrl" :src="client.getCacheUrl(redTeam.teamIconUrl)" class="team-icon"
-                    style="border-left: 2px solid var(--red-team-color);" alt="Red team" @error="handleImageError"
-                    @load="handleImageLoad" />
-            </div>
-
-            <div class="graph-container">
-                <div class="gold-graph">
-                    <svg v-if="displaySeries" :viewBox="`0 0 ${WIDTH} ${HEIGHT}`" preserveAspectRatio="none"
-                        class="chart">
-                        <defs>
-                            <!-- Blue: solid at MID_Y, fades to transparent at GRAPH_TOP -->
-                            <linearGradient id="blueGrad" gradientUnits="userSpaceOnUse" x1="0" x2="0" :y1="MID_Y"
-                                :y2="GRAPH_TOP">
-                                <stop offset="0%" stop-color="#2460c8" stop-opacity="0.8" />
-                                <stop offset="100%" stop-color="#2460c8" stop-opacity="0.1" />
-                            </linearGradient>
-                            <!-- Red: solid at MID_Y, fades to transparent at GRAPH_BOTTOM -->
-                            <linearGradient id="redGrad" gradientUnits="userSpaceOnUse" x1="0" x2="0" :y1="MID_Y"
-                                :y2="GRAPH_BOTTOM">
-                                <stop offset="0%" stop-color="#c82424" stop-opacity="0.8" />
-                                <stop offset="100%" stop-color="#c82424" stop-opacity="0.1" />
-                            </linearGradient>
-                        </defs>
-
-                        <!-- Filled regions -->
-                        <path :d="fillPathBlue" fill="url(#blueGrad)" />
-                        <path :d="fillPathRed" fill="url(#redGrad)" />
-
-                        <!-- Zero / center line -->
-                        <line :x1="PADDING_X" :y1="MID_Y" :x2="WIDTH - PADDING_X" :y2="MID_Y"
-                            stroke="rgba(255,255,255,0.25)" stroke-width="1" />
-
-                        <!-- Vertical reference lines every 5 minutes -->
-                        <line v-for="vl in verticalLines" :key="vl.label" :x1="vl.x" :y1="GRAPH_TOP" :x2="vl.x"
-                            :y2="GRAPH_BOTTOM" stroke="rgba(255,255,255,0.12)" stroke-width="1" />
-
-                        <!-- Gold scale labels -->
-                        <text :x="PADDING_X + 4" :y="GRAPH_TOP + 11" class="pct-label">{{ scaleLabels.top }}</text>
-                        <text :x="PADDING_X + 4" :y="GRAPH_BOTTOM - 4" class="pct-label">{{ scaleLabels.bottom }}</text>
-
-                        <!-- Data line: colored by leading team -->
-                        <path v-for="(seg, i) in coloredSegments" :key="i" :d="seg.d" fill="none"
-                            :stroke="seg.color === 'blue' ? 'rgba(100,160,255,0.95)' : 'rgba(255,100,100,0.95)'"
-                            stroke-width="1.5" stroke-linejoin="round" />
-
-                        <!-- Animated draw-in for the newest segment -->
-                        <path v-if="newSegmentInfo" :key="newSegmentAnimKey" :d="newSegmentInfo.path" fill="none"
-                            :stroke="newSegmentInfo.color" stroke-width="1.5" stroke-linejoin="round" :style="{
-                                strokeDasharray: newSegmentInfo.length,
-                                strokeDashoffset: newSegmentInfo.length,
-                                animation: 'drawSegment 0.5s ease forwards',
-                            }" />
-
-                        <!-- Notable extrema labels -->
-                        <g v-for="(ex, i) in notableExtrema" :key="'ex-' + i">
-                            <circle :cx="ex.x" :cy="ex.y" r="2"
-                                :fill="ex.diff >= 0 ? 'rgba(100,160,255,0.9)' : 'rgba(255,100,100,0.9)'" />
-                            <text :x="ex.labelX" :y="ex.labelY" text-anchor="middle"
-                                :class="ex.diff >= 0 ? 'extrema-label blue-label' : 'extrema-label red-label'">{{
-                                    formatGoldShort(ex.diff) }}</text>
-                        </g>
-
-                        <!-- Time labels -->
-                        <text v-for="vl in verticalLines" :key="'lbl-' + vl.label" :x="vl.x" :y="HEIGHT - 2"
-                            text-anchor="middle" class="time-label">{{ vl.label }}</text>
-
-                    </svg>
-                </div>
-            </div>
+  <SlideTransition>
+    <section v-if="visible" class="gold-panel">
+      <div class="summary"><header><img :src="fbeLogo" alt="FBE"/><div><small>{{preview?'DESIGN PREVIEW':'LIVE // ECONOMY'}}</small><h2>GOLD ADVANTAGE</h2></div></header><div class="latest" :class="{blue:(last?.diff??0)>0,red:(last?.diff??0)<0}"><small>{{leader}} {{last?.diff?'AHEAD':'GOLD'}}</small><strong>{{last?.diff?'+'+format(last.diff):'EVEN'}}</strong><span>LAST SAMPLE · {{time(last?.time??0)}}</span></div><div class="changes"><span>LEAD CHANGES</span><b>{{changes}}</b></div></div>
+      <div class="peaks">
+        <div v-for="(team,i) in teams" :key="team.side" :class="team.side" class="team-peak">
+          <div class="team-emblem">
+            <span>{{team.tag}}</span>
+            <img v-if="team.logo" :key="team.logo" :src="team.logo" :alt="team.tag+' logo'" @error="hide" @load="show"/>
+          </div>
+          <div class="peak-info"><b>{{team.tag}}</b><strong>{{(i===0?high:-low)>0?'+'+format(i===0?high:-low):'—'}}</strong><small>PEAK LEAD</small></div>
         </div>
-    </SlideTransition>
+      </div>
+      <div class="chart-wrap"><div class="chart-heading"><b>GOLD DIFFERENCE OVER TIME</b><span><i class="blue-dot"/>{{tags[0]}} AHEAD <i class="red-dot"/>{{tags[1]}} AHEAD</span></div><svg viewBox="0 0 1160 196" class="chart" role="img" aria-label="Live gold difference over time"><defs><clipPath :id="blueClip"><rect :x="L" :y="T" :width="R-L" :height="M-T"/></clipPath><clipPath :id="redClip"><rect :x="L" :y="M" :width="R-L" :height="B-M"/></clipPath></defs><g v-for="n in [range,range/2,0,-range/2,-range]" :key="n"><line :x1="L" :x2="R" :y1="y(n)" :y2="y(n)" :class="n===0?'zero':'gridline'"/><text :x="L-10" :y="y(n)+4" text-anchor="end" class="axis">{{signed(n)}}</text></g><g v-for="t in timeTicks" :key="t"><line :x1="x(t)" :x2="x(t)" :y1="T" :y2="B" class="gridline"/><text :x="x(t)" y="188" text-anchor="middle" class="axis">{{time(t)}}</text></g><path :d="area" fill="#69a1ff" fill-opacity=".28" :clip-path="`url(#${blueClip})`"/><path :d="area" fill="#ff5064" fill-opacity=".28" :clip-path="`url(#${redClip})`"/><path :d="line" fill="none" stroke="#f5f0eb" stroke-width="2.5" stroke-linejoin="round"/><circle v-if="last" :cx="x(last.time)" :cy="y(last.diff)" r="4" :fill="last.diff>0?'#69a1ff':last.diff<0?'#ff5064':'#e2b793'" stroke="#fff" stroke-width="1.5"/></svg></div>
+    </section>
+  </SlideTransition>
 </template>
-
 <style scoped>
-.gold-graph-container {
-    display: grid;
-    grid-template-columns: 285px 176px 1fr;
-    height: 260px;
-    position: relative;
-    z-index: 99;
-    box-sizing: border-box;
-    filter: drop-shadow(0 0 18px rgba(0, 0, 0, 0.9));
-}
-
-.title-container {
-    background:
-        linear-gradient(135deg, rgba(177, 18, 38, 0.35), transparent 45%),
-        repeating-linear-gradient(-16deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 8px),
-        #050507;
-    border-right: 1px solid var(--theme-border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-left: 24px;
-    padding-right: 24px;
-    position: relative;
-    box-shadow: inset 0 0 20px rgba(255, 38, 63, 0.14);
-}
-
-.title-container::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 24px;
-    bottom: 24px;
-    width: 4px;
-    background: var(--theme-red-bright);
-    box-shadow: 0 0 12px rgba(255, 38, 63, 0.8);
-}
-
-.title-text {
-    color: var(--theme-text);
-    font-size: 24px;
-    font-weight: 700;
-    font-family: "Bebas Neue", sans-serif;
-    letter-spacing: 0.06em;
-    text-shadow: 0 0 5px black, 0 0 12px rgba(255, 38, 63, 0.55);
-}
-
-.title-arrow {
-    color: var(--theme-red-bright);
-    font-size: 48px;
-    font-family: "Bebas Neue", sans-serif;
-    text-shadow: 0 0 10px rgba(255, 38, 63, 0.8);
-}
-
-.team-info-container {
-    background:
-        linear-gradient(180deg, rgba(177, 18, 38, 0.18), transparent 45%, rgba(177, 18, 38, 0.12)),
-        #050507;
-    height: 260px;
-    z-index: 3;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-evenly;
-    padding: 8px 0;
-    border-right: 1px solid var(--theme-border-soft);
-    box-shadow: inset 0 0 18px rgba(255, 38, 63, 0.1);
-}
-
-.team-icon {
-    width: auto;
-    max-height: 40%;
-    object-fit: contain;
-    background-color: #09090c;
-    padding: 8px;
-    border: 1px solid var(--theme-border-soft);
-    box-shadow:
-        inset 0 0 12px rgba(255, 38, 63, 0.12),
-        0 0 10px rgba(0, 0, 0, 0.75);
-    filter: drop-shadow(0 0 8px rgba(255, 38, 63, 0.24));
-}
-
-.graph-container {
-    height: 260px;
-    min-height: 0;
-    z-index: 3;
-    overflow: hidden;
-    border: 10px solid #050507;
-    box-sizing: border-box;
-    background: #050507;
-    box-shadow: inset 0 0 16px rgba(255, 38, 63, 0.18);
-}
-
-.gold-graph {
-    width: 100%;
-    height: 100%;
-    background:
-        radial-gradient(circle at center, rgba(177, 18, 38, 0.12), transparent 58%),
-        repeating-linear-gradient(-14deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 10px),
-        #09090c;
-    color: var(--theme-text);
-    font-family: "Bebas Neue", sans-serif;
-    user-select: none;
-    overflow: hidden;
-    border: 1px solid var(--theme-border-soft);
-}
-
-.chart {
-    width: 100%;
-    height: 100%;
-    display: block;
-}
-
-.pct-label {
-    fill: rgba(245, 240, 235, 0.5);
-    font-size: 9px;
-    font-family: "Bebas Neue", sans-serif;
-}
-
-.extrema-label {
-    font-size: 8px;
-    font-family: "Bebas Neue", sans-serif;
-    font-weight: 600;
-    paint-order: stroke fill;
-    stroke: #050507;
-    stroke-width: 3px;
-    stroke-linejoin: round;
-}
-
-.extrema-label.blue-label {
-    fill: rgba(170, 190, 255, 1);
-}
-
-.extrema-label.red-label {
-    fill: var(--theme-red-bright);
-}
-
-.time-label {
-    fill: rgba(245, 240, 235, 0.9);
-    font-size: 12px;
-    font-family: "Bebas Neue", sans-serif;
-    letter-spacing: 0.04em;
-}
-
-@keyframes drawSegment {
-    to {
-        stroke-dashoffset: 0;
-    }
-}
+.gold-panel{width:100%;height:260px;box-sizing:border-box;display:grid;grid-template-columns:265px 230px minmax(0,1fr);background:repeating-linear-gradient(-14deg,#ffffff04 0 1px,transparent 1px 9px),linear-gradient(115deg,#260b13,#09090d 45%,#10090d);border:1px solid #ff263f65;border-top:3px solid #ff263f;color:#f5f0eb;font-family:Rajdhani,Inter,'Bebas Neue',Arial,sans-serif;font-variant-numeric:tabular-nums;box-shadow:0 -5px 20px #0009;pointer-events:none;overflow:hidden}.gold-panel *{box-sizing:border-box}.summary{display:flex;flex-direction:column;padding:12px 14px;gap:12px;border-right:1px solid #ff263f35;min-width:0}header{display:flex;align-items:center;gap:9px;border-bottom:1px solid #ff263f40;padding-bottom:10px}header img{width:34px;height:34px;object-fit:contain}header small{display:block;font-size:10px;letter-spacing:1.5px;color:#a99fa2;font-weight:800}h2{margin:4px 0 0;font:900 17px/1 Orbitron,Bahnschrift,Arial,sans-serif;white-space:nowrap}.latest{display:flex;flex-direction:column;gap:5px;flex:1;justify-content:center}.latest small{font-size:15px;font-weight:900;letter-spacing:1px}.latest strong{font:900 48px/1 Orbitron,Bahnschrift,Arial,sans-serif}.latest span{font-size:11px;font-weight:800;color:#a99fa2;letter-spacing:1px}.blue{color:#69a1ff}.red{color:#ff5064}.changes{display:flex;align-items:center;justify-content:space-between;background:#ffffff08;padding:8px 10px;color:#bcb3b8;font-size:12px;font-weight:800}.changes b{font-size:21px;color:#e2b793}.peaks{display:grid;grid-template-rows:1fr 1fr;gap:5px;padding:8px 10px;border-right:1px solid #ff263f35}
+.team-peak{position:relative;display:grid;grid-template-columns:86px minmax(0,1fr);align-items:center;gap:10px;padding:8px;background:linear-gradient(110deg,color-mix(in srgb,currentColor 12%,#131218),#131218);border-left:3px solid currentColor;min-width:0;overflow:hidden}
+.team-emblem{width:86px;height:86px;position:relative;display:grid;place-items:center;background:#08080c75;border:1px solid #ffffff18;overflow:hidden}
+.team-emblem span{font-size:20px;font-weight:900;text-align:center;overflow-wrap:anywhere;max-width:100%}
+.team-emblem img{position:absolute;inset:0;width:100%;height:100%;padding:7px;object-fit:contain;filter:drop-shadow(0 3px 7px #000a)}
+.team-emblem:has(img:not([style*="hidden"])) span{visibility:hidden}
+.peak-info{min-width:0;display:flex;flex-direction:column;gap:5px}
+.peak-info b,.peak-info strong,.peak-info small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.peak-info b{font-size:17px;font-weight:900}.peak-info strong{font-size:26px;line-height:1;font-weight:900}.peak-info small{font-size:10px;color:#a99fa2;font-weight:800;letter-spacing:.8px}
+.chart-wrap{min-width:0;display:flex;flex-direction:column;padding:10px 14px 8px}.chart-heading{height:28px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #ff263f30;font-size:14px;letter-spacing:1px}.chart-heading span{display:flex;align-items:center;gap:6px;color:#bcb3b8;font-size:11px;font-weight:800;white-space:nowrap}.chart-heading i{width:8px;height:8px}.blue-dot{background:#69a1ff}.red-dot{background:#ff5064}.chart{width:100%;flex:1;min-height:0;display:block}.gridline{stroke:#ffffff18;stroke-width:1}.zero{stroke:#ffffff80;stroke-dasharray:5 4}.axis{fill:#c6bdc1;font-size:12px;font-weight:700}
 </style>
