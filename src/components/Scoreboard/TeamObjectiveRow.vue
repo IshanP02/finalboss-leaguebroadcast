@@ -1,119 +1,25 @@
 <script setup lang="ts">
-import { type ingameScoreboardTeamData, type ingameScoreboardBottomPlayerData, getRoleQuest } from '@bluebottle_gg/league-broadcast-client';
-import TopIcon from "@/assets/lane/top-placeholder-cropped.svg";
-import JungleIcon from "@/assets/lane/jgl-placeholder-cropped.svg";
-import MidIcon from "@/assets/lane/mid-placeholder-cropped.svg";
-import BotIcon from "@/assets/lane/bot-placeholder-cropped.svg";
-import SupportIcon from "@/assets/lane/sup-placeholder-cropped.svg";
-import TextWithIcon from './TextWithIcon.vue';
-import Grubs from "@/assets/grubs.png";
-import Fire from "@/assets/dragon/fire.png";
-import Air from "@/assets/dragon/air.png";
-import Chemtech from "@/assets/dragon/chemtech.png";
-import Hextech from "@/assets/dragon/hextech.png";
-import Earth from "@/assets/dragon/earth.png";
-import Water from "@/assets/dragon/water.png";
-import Elder from "@/assets/dragon/elder.png";
+import type { ingameScoreboardTeamData } from '@bluebottle_gg/league-broadcast-client';
+import Grubs from '@/assets/grubs.png';
+import Fire from '@/assets/dragon/fire.png';
+import Air from '@/assets/dragon/air.png';
+import Chemtech from '@/assets/dragon/chemtech.png';
+import Hextech from '@/assets/dragon/hextech.png';
+import Earth from '@/assets/dragon/earth.png';
+import Water from '@/assets/dragon/water.png';
+import Elder from '@/assets/dragon/elder.png';
 import { handleImageError, handleImageLoad } from '@/utils/imageUtils';
-
-const props = defineProps<{
-    team: ingameScoreboardTeamData
-    players: ingameScoreboardBottomPlayerData[]
-    mirror?: boolean
-    isMocking?: boolean
-}>()
-
-function playerHasQuestComplete(player: ingameScoreboardBottomPlayerData) {
-    if (props.isMocking) {
-        return player.respawnAt
-    }
-    const roleItem = getRoleQuest(player)
-    if (!roleItem || !roleItem.stats || roleItem.stats.length < 3) {
-        return false;
-    }
-    if (roleItem.id === 1220) {
-        return true;
-    }
-    const current = roleItem.stats[0] ?? 0;
-    const max = roleItem.stats[1] ?? 1;
-    const value = Math.min(100, Math.max(0, (current / max) * 100));
-    return value >= 100;
-}
-
-function allQuestsComplete() {
-    return props.players.every(playerHasQuestComplete);
-}
-const roleIcons = [TopIcon, JungleIcon, MidIcon, BotIcon, SupportIcon];
-
-function getDragonIcon(dragonType: string) {
-    switch (dragonType.toLowerCase()) {
-        case "fire":
-            return Fire;
-        case "air":
-            return Air;
-        case "chemtech":
-            return Chemtech;
-        case "hextech":
-            return Hextech;
-        case "earth":
-            return Earth;
-        case "water":
-            return Water;
-        case "elder":
-            return Elder;
-        default:
-            return undefined;
-    }
-}
+defineProps<{team:ingameScoreboardTeamData;mirror?:boolean}>();
+const icons:Record<string,string>={fire:Fire,air:Air,chemtech:Chemtech,hextech:Hextech,earth:Earth,water:Water,elder:Elder};
+const getDragonIcon=(type:string)=>icons[type.toLowerCase()];
 </script>
-
 <template>
-    <div class="flex items-center h-full" :class="mirror ? 'flex-row-reverse' : 'flex-row'">
-        <TransitionGroup name="stagger-fade" tag="div" appear class="flex flex-row h-full items-center gap-2 w-43"
-            :class="mirror ? 'justify-end' : 'justify-start'" id="quest-container" :style="{
-                'padding-left': mirror ? 'auto' : '8px',
-                'padding-right': mirror ? '8px' : 'auto',
-            }">
-            <div v-for="(player, i) in players" v-if="!allQuestsComplete()" :key="i"
-                class="flex items-center justify-center gap-1 rounded-full p-1 w-6 h-6 border" :style="{
-                    borderColor: playerHasQuestComplete(player) ? (mirror ? 'var(--red-team-color)' : 'var(--blue-team-color)') : '#ffffff55',
-                    backgroundColor: playerHasQuestComplete(player) ? `color-mix(in srgb, ${mirror ? 'var(--red-team-color)' : 'var(--blue-team-color)'} 10%, transparent)` : '#00000066',
-                    color: playerHasQuestComplete(player) ? (mirror ? 'var(--red-team-color)' : 'var(--blue-team-color)') : '#ffffff',
-                    '--i': mirror ? (players.length - 1 - i) : i
-                }">
-                <component :is="roleIcons[i]" class="w-4 h-4" />
-            </div>
-        </TransitionGroup>
-
-        <TextWithIcon class="h-6" :icon-url="Grubs" :text="props.team.grubs.toString()" :mirror="mirror"
-            :class="mirror ? ['pr-2'] : ['pl-2']" />
-
-
-        <TransitionGroup name="stagger-fade" tag="div" appear
-            class="flex flex-row justify-start h-full grow items-center gap-2 mx-4"
-            :class="mirror ? 'flex-row' : 'flex-row-reverse'">
-            <img v-for="(dragon, i) in team.dragons" :key="i" :src="getDragonIcon(dragon)" alt="Dragon icon"
-                class="h-5 w-auto" @error="handleImageError" @load="handleImageLoad" />
-        </TransitionGroup>
-
-
-    </div>
+  <div class="objective-row" :class="{mirror}">
+    <div class="grubs"><img :src="Grubs" alt="Void Grubs"/><b>{{team.grubs}}</b><small>GRUBS</small></div>
+    <div class="dragons"><small>DRAKES</small><div class="dragon-list"><template v-for="(dragon,i) in team.dragons" :key="`${dragon}-${i}`"><img v-if="getDragonIcon(dragon)" :src="getDragonIcon(dragon)" :alt="dragon" @error="handleImageError" @load="handleImageLoad"/><span v-else class="unknown-dragon" :title="dragon">?</span></template><span v-if="!team.dragons?.length" class="no-drakes">—</span></div></div>
+  </div>
 </template>
-
-
-<style lang="css" scoped>
-.stagger-fade-enter-active,
-.stagger-fade-leave-active {
-    transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.stagger-fade-enter-active {
-    transition-delay: calc(700ms + var(--i) * 120ms);
-}
-
-.stagger-fade-enter-from,
-.stagger-fade-leave-to {
-    opacity: 0;
-    transform: translateY(6px);
-}
+<style scoped>
+.objective-row{--side:#69a1ff;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 8px;min-width:0;height:100%;box-sizing:border-box;border-left:3px solid var(--side);color:#f5f0eb;overflow:hidden}.objective-row.mirror{--side:#ff5064;flex-direction:row-reverse;border-left:0;border-right:3px solid var(--side)}
+.grubs,.dragons,.dragon-list{display:flex;align-items:center;gap:5px}.grubs{flex-shrink:0}.grubs img{width:23px;height:23px;object-fit:contain}.grubs b{font:900 23px/1 'Bebas Neue',Rajdhani,Arial,sans-serif}.objective-row small{font-size:10px;font-weight:800;letter-spacing:.7px;color:#a99fa2;white-space:nowrap}.dragons{min-width:0}.dragon-list{min-width:0;gap:4px}.dragon-list img{width:clamp(15px,1.25vw,23px);height:23px;min-width:0;flex:0 1 23px;object-fit:contain;filter:drop-shadow(0 1px 3px #0009)}.mirror .grubs,.mirror .dragons,.mirror .dragon-list{flex-direction:row-reverse}.no-drakes,.unknown-dragon{color:#a99fa2;font-size:16px}
 </style>

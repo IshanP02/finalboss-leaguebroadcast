@@ -1,245 +1,58 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
-import { useIngameSelector } from "@/composables/useIngame";
-import TeamRow from "./TeamRow.vue";
-import TeamObjectiveRow from "./TeamObjectiveRow.vue";
-import { GameState } from "@bluebottle_gg/league-broadcast-client";
-import { useClient } from "@/client";
-import { handleImageError, handleImageLoad } from "@/utils/imageUtils";
-import PowerPlayBox from "./PowerPlayBox.vue";
-
-const scoreboard = useIngameSelector((s) => s.gameData.scoreboard);
-const players = useIngameSelector((s) => s.gameData.scoreboardBottom);
-const isMocking = useIngameSelector((s) => (s.gameState as number) === GameState.Mocking);
+import { computed, onMounted, ref } from 'vue';
+import { useIngameSelector } from '@/composables/useIngame';
+import { useClient } from '@/client';
+import { handleImageError, handleImageLoad } from '@/utils/imageUtils';
+import fbeLogo from '@/assets/72x72.png';
+import TeamRow from './TeamRow.vue';
+import TeamObjectiveRow from './TeamObjectiveRow.vue';
+import PowerPlayBox from './PowerPlayBox.vue';
+const scoreboard = useIngameSelector(s => s.gameData.scoreboard);
 const client = useClient();
-
 const seasonIcon = ref<string | null>(null);
-
 const blue = computed(() => scoreboard.value?.teams[0]);
 const red = computed(() => scoreboard.value?.teams[1]);
-
-const bluePlayers = computed(() => players.value?.teams[0]?.players || []);
-const redPlayers = computed(() => players.value?.teams[1]?.players || []);
-
 const gameTime = computed(() => {
-    if (!scoreboard.value) return "00:00";
-    const minutes = Math.floor(scoreboard.value.gameTime / 60);
-    const seconds = Math.floor(scoreboard.value.gameTime % 60);
-    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-})
-
+  const seconds = Math.max(0, Math.floor(scoreboard.value?.gameTime ?? 0));
+  return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+});
+const cacheStamp = Date.now();
+const seasonLogo = computed(() => seasonIcon.value ? `${client.getCacheUrl(seasonIcon.value, true)}?ts=${cacheStamp}` : undefined);
 onMounted(async () => {
-    seasonIcon.value = await client.api.season.getCurrentSeasonIcon();
-})
-const dateTimeNowString = new Date().toISOString();
+  try { seasonIcon.value = await client.api.season.getCurrentSeasonIcon(); }
+  catch { /* FBE logo remains available if the season has no icon. */ }
+});
 </script>
-
 <template>
-    <Transition name="scoreboard" :duration="{ enter: 850, leave: 750 }">
-        <div class="scoreboard-with-powerplays">
-            <div class="powerplay-side left">
-                <PowerPlayBox type="baron" :power-play="blue?.baronPowerPlay" />
-                <PowerPlayBox type="elder" :power-play="blue?.dragonPowerPlay" />
-            </div>
-            <div v-if="scoreboard && blue && red" class="scoreboard">
-                <div class="row-clip theme-panel">
-                    <div class="top-row">
-                        <TeamRow style="grid-column: 1;" :team="blue" :best-of="scoreboard.bestOf"
-                            :enemy-team-gold="red.gold" />
-                        <!-- TODO: remove temporary cache busting -->
-                        <img v-if="seasonIcon" :src="client.getCacheUrl(seasonIcon, true) + `?ts=${dateTimeNowString}`"
-                            class="center-logo" @error="handleImageError" @load="handleImageLoad" />
-                        <TeamRow style="grid-column: 3;" :team="red" :best-of="scoreboard.bestOf"
-                            :enemy-team-gold="blue.gold" mirror />
-                    </div>
-                </div>
-                <div class="row-clip">
-                    <div class="bottom-row">
-                        <TeamObjectiveRow :team="blue" :players="bluePlayers" :is-mocking="isMocking" />
-                        <p class="game-time text-stretch-vertical">{{ gameTime }}
-                        </p>
-                        <TeamObjectiveRow :team="red" :players="redPlayers" mirror :is-mocking="isMocking" />
-                    </div>
-                </div>
-            </div>
-            <div class="powerplay-side right">
-                <PowerPlayBox type="baron" :power-play="red?.baronPowerPlay" mirror />
-                <PowerPlayBox type="elder" :power-play="red?.dragonPowerPlay" mirror />
+  <Transition name="scoreboard">
+    <div v-if="scoreboard && blue && red" class="scoreboard-with-powerplays">
+      <div class="scoreboard">
+        <div class="top-row">
+          <TeamRow :team="blue" :best-of="scoreboard.bestOf" :enemy-team-gold="red.gold"/>
+          <div class="center-logo"><img class="fallback" :src="fbeLogo" alt="FBE"/><img v-if="seasonLogo" class="season" :src="seasonLogo" alt="Season logo" @error="handleImageError" @load="handleImageLoad"/></div>
+          <TeamRow :team="red" :best-of="scoreboard.bestOf" :enemy-team-gold="blue.gold" mirror/>
         </div>
+        <div class="bottom-row">
+          <TeamObjectiveRow :team="blue"/>
+          <div class="clock">{{gameTime}}</div>
+          <TeamObjectiveRow :team="red" mirror/>
+        </div>
+      </div>
+      <div class="powerplay-side left"><PowerPlayBox type="baron" :power-play="blue.baronPowerPlay"/><PowerPlayBox type="elder" :power-play="blue.dragonPowerPlay"/></div>
+      <div class="powerplay-side right"><PowerPlayBox type="baron" :power-play="red.baronPowerPlay" mirror/><PowerPlayBox type="elder" :power-play="red.dragonPowerPlay" mirror/></div>
     </div>
-    </Transition>
+  </Transition>
 </template>
-
 <style scoped>
-.scoreboard {
-    width: 800px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.row-clip {
-    overflow: hidden;
-}
-
-/* Enter: top row first, bottom row waits for top to finish */
-.scoreboard-enter-active .top-row {
-    animation: row-slide-in 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-}
-
-.scoreboard-enter-active .bottom-row {
-    animation: row-slide-in 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.4s both;
-}
-
-/* Exit: bottom row first, top row waits for bottom to finish */
-.scoreboard-leave-active .top-row {
-    animation: row-slide-out 0.35s cubic-bezier(0.55, 0, 0.75, 0.06) 0.35s both;
-}
-
-.scoreboard-leave-active .bottom-row {
-    animation: row-slide-out 0.35s cubic-bezier(0.55, 0, 0.75, 0.06) both;
-}
-
-@keyframes row-slide-in {
-    from {
-        transform: translateY(-100%);
-    }
-
-    to {
-        transform: translateY(0);
-    }
-}
-
-@keyframes row-slide-out {
-    from {
-        transform: translateY(0);
-    }
-
-    to {
-        transform: translateY(-100%);
-    }
-}
-
-.top-row {
-    height: 80px;
-    background-color: rgba(0, 0, 0, 0.9);
-    border-radius: 8px;
-    border: 1px solid #ffffff55;
-    box-sizing: border-box;
-    overflow: hidden;
-    display: grid;
-    grid-template-columns: 1fr 40px 1fr;
-    grid-template-rows: 80px;
-    position: relative;
-}
-
-.team-row {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 0 12px;
-    color: #fff;
-}
-
-.team-row.team-blue {
-    background-color: rgba(37, 99, 235, 0.8);
-    grid-column: 1;
-}
-
-.team-row.team-red {
-    background-color: rgba(220, 38, 38, 0.8);
-    grid-column: 3;
-}
-
-.center-logo {
-    width: 48px;
-    height: 48px;
-
-    justify-self: center;
-    align-self: center;
-
-    grid-column: 2;
-
-    position: relative;
-    z-index: 2;
-
-    object-fit: contain;
-
-    filter:
-        drop-shadow(0 0 4px rgba(0,0,0,0.9))
-        drop-shadow(0 0 8px rgba(255,38,63,0.22));
-}
-
-.bottom-row {
-    height: 40px;
-    background-color: rgba(0, 0, 0, 0.4);
-    border-radius: 8px;
-    display: grid;
-    box-sizing: border-box;
-    overflow: hidden;
-    display: grid;
-    grid-template-columns: 1fr 40px 1fr;
-    grid-template-rows: 40px;
-}
-
-.game-time {
-    margin: 0;
-    line-height: 1;
-    color: #fff;
-    font-size: 24px;
-    font-weight: bold;
-    justify-self: center;
-    align-self: center;
-    letter-spacing: var(--tracking-tight);
-}
-
-.text-stretch-vertical {
-    font-family: 'Bebas Neue';
-    display: inline-block;
-    -webkit-transform: scale(1, 1.5);
-    /* Safari and Chrome */
-    -moz-transform: scale(1, 1.5);
-    /* Firefox */
-    -ms-transform: scale(1, 1.5);
-    /* IE 9 */
-    -o-transform: scale(1, 1.5);
-    /* Opera */
-    transform: scale(1, 1.5);
-    /* Standard syntax */
-}
-.scoreboard-with-powerplays {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-}
-
-.powerplay-side {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 0px;
-}
-
-.powerplay-side.left {
-  margin-right: 8px;
-}
-
-.powerplay-side.right {
-  margin-left: 8px;
-}
-
-.power-play {
-  background:
-    linear-gradient(
-      180deg,
-      rgba(45,45,45,0.96),
-      rgba(8,8,10,0.96)
-    );
-
-  transition:
-    background 0.25s ease,
-    border-color 0.25s ease;
-}
-
-
+/* IngameView centers this exact 800px anchor. Its absolutely positioned children never affect its width. */
+.scoreboard-with-powerplays{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:800px;box-sizing:border-box;pointer-events:none;color:#f5f0eb;font-family:Rajdhani,Inter,'Bebas Neue',Arial,sans-serif;font-variant-numeric:tabular-nums;overflow:visible}
+.scoreboard{width:100%;display:grid;grid-template-rows:80px 40px;gap:4px;filter:drop-shadow(0 4px 10px #0009)}
+.top-row,.bottom-row{display:grid;grid-template-columns:minmax(0,1fr) 72px minmax(0,1fr);box-sizing:border-box;min-width:0;overflow:hidden;background:#0a090d;border:1px solid #ff263f48}
+.top-row{border-top:3px solid #ff263f}.bottom-row{background:linear-gradient(100deg,#141822,#0b090e 50%,#21131a)}
+.center-logo{position:relative;display:grid;place-items:center;background:linear-gradient(160deg,#3b0c18,#100b11);border-inline:1px solid #ff263f45}
+.center-logo img{width:53px;height:53px;object-fit:contain;filter:drop-shadow(0 3px 5px #0009)}.center-logo .season{position:absolute;inset:0;margin:auto}.center-logo:has(.season:not([style*="hidden"]):not([style*="display: none"])) .fallback{visibility:hidden}
+.clock{display:grid;place-items:center;background:#170c12;font:900 22px/1 'Bebas Neue',Rajdhani,Arial,sans-serif;letter-spacing:1px;border-inline:1px solid #ff263f35;white-space:nowrap}
+.powerplay-side{position:absolute;top:0;width:174px;display:flex;flex-direction:column;gap:4px}.powerplay-side.left{right:calc(100% + 8px)}.powerplay-side.right{left:calc(100% + 8px)}
+.scoreboard-enter-active,.scoreboard-leave-active{transition:opacity .35s ease}.scoreboard-enter-from,.scoreboard-leave-to{opacity:0}
+@media(prefers-reduced-motion:reduce){.scoreboard-enter-active,.scoreboard-leave-active{transition:none}}
 </style>

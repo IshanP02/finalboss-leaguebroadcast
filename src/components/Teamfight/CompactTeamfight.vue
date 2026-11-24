@@ -2,129 +2,30 @@
 import { useIngameSelector } from '@/composables/useIngame';
 import { Team } from '@bluebottle_gg/league-broadcast-client';
 import { computed } from 'vue';
-import BlueBottleGGLogo from '@/assets/blue_bottle-logo-color-bright_outline.svg';
+import fbeLogo from '@/assets/72x72.png';
 import TeamfightPlayerEntry from './TeamfightPlayerEntry.vue';
-
-const teamfight = useIngameSelector((state) => state.gameData.teamfightDamageOverview);
-
-const blueEntries = computed(() => teamfight?.value?.damageDealt.filter((entry) => entry.team === Team.Order) || []);
-const redEntries = computed(() => teamfight?.value?.damageDealt.filter((entry) => entry.team === Team.Chaos) || []);
-
-const STAGGER_STEP = 0.1;
-const BASE_DELAY = 0.5;
-
-function onBeforeEnter(el: Element) {
-    const htmlEl = el as HTMLElement;
-    htmlEl.style.opacity = '0';
-    htmlEl.style.transform = 'translateY(100%)';
-}
-
-function makeEnterHandler(getDelay: (index: number, total: number) => number, getTotal: () => number) {
-    return (el: Element, done: () => void) => {
-        const htmlEl = el as HTMLElement;
-        const index = parseInt((htmlEl as HTMLElement).dataset.index ?? '0');
-        const delay = BASE_DELAY + getDelay(index, getTotal());
-        htmlEl.style.transition = `opacity 0.3s ease ${delay}s, transform 0.3s ease ${delay}s`;
-        // force reflow
-        void htmlEl.offsetHeight;
-        htmlEl.style.opacity = '1';
-        htmlEl.style.transform = 'translateY(0)';
-        htmlEl.addEventListener('transitionend', done, { once: true });
-    };
-}
-
-// Blue: inside = highest index (rightmost), outside = 0 (leftmost)
-const onBlueEnter = makeEnterHandler(
-    (index, total) => (total - 1 - index) * STAGGER_STEP,
-    () => blueEntries.value.length
-);
-
-// Red: inside = index 0 (leftmost), outside = highest index (rightmost)
-const onRedEnter = makeEnterHandler(
-    (index) => index * STAGGER_STEP,
-    () => redEntries.value.length
-);
+const teamfight=useIngameSelector(s=>s.gameData.teamfightDamageOverview);
+const scoreboard=useIngameSelector(s=>s.gameData.scoreboard);
+const blueEntries=computed(()=>teamfight.value?.damageDealt.filter(entry=>entry.team===Team.Order)??[]);
+const redEntries=computed(()=>teamfight.value?.damageDealt.filter(entry=>entry.team===Team.Chaos)??[]);
+const blueTag=computed(()=>scoreboard.value?.teams[0]?.teamTag||'BLUE');
+const redTag=computed(()=>scoreboard.value?.teams[1]?.teamTag||'RED');
 </script>
-
-
 <template>
-    <Transition name="slide-down">
-        <div v-if="teamfight" class="teamfight-container">
-            <div class="team-container order">
-                <TransitionGroup appear @before-enter="onBeforeEnter" @enter="onBlueEnter">
-                    <TeamfightPlayerEntry class="team-entry" v-for="(entry, index) in blueEntries" :key="index"
-                        :data="entry" :data-index="index">
-                    </TeamfightPlayerEntry>
-                </TransitionGroup>
-            </div>
-            <BlueBottleGGLogo class="teamfight-logo" />
-
-            <div class="team-container chaos">
-                <TransitionGroup appear @before-enter="onBeforeEnter" @enter="onRedEnter">
-                    <TeamfightPlayerEntry class="team-entry" v-for="(entry, index) in redEntries" :key="index"
-                        :data="entry" mirror :data-index="index">
-                    </TeamfightPlayerEntry>
-                </TransitionGroup>
-            </div>
-        </div>
-    </Transition>
+  <Transition name="slide-down">
+    <div v-if="teamfight" class="teamfight-container">
+      <header><span class="blue">{{blueTag}}</span><div><img :src="fbeLogo" alt="FBE"/><strong>TEAMFIGHT // LIVE</strong></div><span class="red">{{redTag}}</span></header>
+      <div class="fight-body">
+        <div class="team-container order"><TransitionGroup name="fighter" appear><TeamfightPlayerEntry v-for="(entry,index) in blueEntries" :key="index" class="team-entry" :data="entry" :style="{'--delay':`${(blueEntries.length-1-index)*70}ms`}"/></TransitionGroup></div>
+        <div class="fight-center"><span>VS</span></div>
+        <div class="team-container chaos"><TransitionGroup name="fighter" appear><TeamfightPlayerEntry v-for="(entry,index) in redEntries" :key="index" class="team-entry" :data="entry" mirror :style="{'--delay':`${index*70}ms`}"/></TransitionGroup></div>
+      </div>
+    </div>
+  </Transition>
 </template>
-
-
-<style lang="css" scoped>
-.teamfight-container {
-    display: grid;
-    grid-template-columns: 1fr 100px 1fr;
-    grid-template-rows: auto;
-    align-items: center;
-    background: linear-gradient(to bottom, rgba(30, 30, 30, 0), rgba(10, 10, 10, 1));
-}
-
-.team-container {
-    display: flex;
-    flex-direction: row;
-    gap: 4px;
-    padding: 8px;
-    height: 100%;
-    align-items: flex-end;
-    background-origin: border-box;
-}
-
-/* Blue: gradient border on left (top→bottom) and bottom (right→left), meeting at bottom-left */
-.team-container.order {
-    background:
-        linear-gradient(to bottom, transparent, var(--blue-team-color)) left / 5px 100% no-repeat,
-        linear-gradient(to left, transparent, var(--blue-team-color)) bottom / 100% 5px no-repeat;
-}
-
-/* Red: gradient border on right (top→bottom) and bottom (left→right), meeting at bottom-right */
-.team-container.chaos {
-    background:
-        linear-gradient(to bottom, transparent, var(--red-team-color)) right / 5px 100% no-repeat,
-        linear-gradient(to right, transparent, var(--red-team-color)) bottom / 100% 5px no-repeat;
-}
-
-.team-entry {
-    flex: 1;
-    width: 100%;
-}
-
-.teamfight-logo {
-    margin-top: auto;
-    height: 100px;
-    width: 0px;
-}
-
-.slide-down-enter-active {
-    transition: transform 0.3s ease 0.3s;
-}
-
-.slide-down-leave-active {
-    transition: transform 0.3s ease;
-}
-
-.slide-down-enter-from,
-.slide-down-leave-to {
-    transform: translateY(100%);
-}
+<style scoped>
+.teamfight-container{width:100%;height:100%;min-height:0;box-sizing:border-box;display:grid;grid-template-rows:34px minmax(0,1fr);background:linear-gradient(135deg,#260b13,#09090d 45%,#10090d);border:1px solid #ff263f60;border-top:3px solid #ff263f;box-shadow:0 -5px 18px #0009;color:#f5f0eb;font-family:Rajdhani,Inter,'Bebas Neue',Arial,sans-serif;pointer-events:none;overflow:hidden}
+header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 12px;border-bottom:1px solid #ff263f35;font-size:15px;font-weight:900;letter-spacing:1px}header div{display:flex;align-items:center;gap:7px}header img{height:22px;width:22px;object-fit:contain}header strong{font:900 14px/1 Orbitron,Bahnschrift,Arial,sans-serif}header .blue{color:#69a1ff}header .red{color:#ff5064;text-align:right}
+.fight-body{display:grid;grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr);min-height:0;overflow:hidden}.team-container{display:flex;gap:4px;align-items:flex-end;min-width:0;min-height:0;padding:3px 6px 4px;box-sizing:border-box}.team-container.order{border-left:3px solid #69a1ff;background:linear-gradient(90deg,#69a1ff12,transparent 80%)}.team-container.chaos{border-right:3px solid #ff5064;background:linear-gradient(270deg,#ff506412,transparent 80%)}.team-entry{flex:1;min-width:0;width:100%;max-height:100%}.team-entry :deep(.area-items){min-height:0}.team-entry :deep(.area-items .item-slot){min-height:0;flex-shrink:1;max-height:28px}.fight-center{display:grid;place-items:center;background:#ffffff04;border-inline:1px solid #ff263f25}.fight-center span{font:900 14px/1 Orbitron,Bahnschrift,Arial,sans-serif;color:#a99fa2}
+.slide-down-enter-active,.slide-down-leave-active{transition:transform .3s ease,opacity .3s ease}.slide-down-enter-from,.slide-down-leave-to{transform:translateY(100%);opacity:0}.fighter-enter-active{transition:opacity .3s ease var(--delay,0ms),transform .3s ease var(--delay,0ms)}.fighter-enter-from{opacity:0;transform:translateY(25px)}@media(prefers-reduced-motion:reduce){.slide-down-enter-active,.slide-down-leave-active,.fighter-enter-active{transition:none}}
 </style>
