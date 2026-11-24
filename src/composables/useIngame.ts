@@ -90,3 +90,34 @@ export function useIngameConnected(): Ref<boolean> {
   });
   return connected;
 }
+
+/**
+ * Reactive boolean indicating whether LeagueBroadcast is
+ * operating in a testing or replay environment.
+ */
+export function useIsTestingEnvironment(): Ref<boolean> {
+  const client = useClient();
+
+  const testing = ref(client.isInTestingEnvironment());
+
+  const unsubscribeStatus = client.onIngameStatusChange(
+    (_status, isTestingEnv) => {
+      testing.value = isTestingEnv;
+    }
+  );
+
+  const unsubscribeState = client.onIngameStateUpdate(
+    (state) => {
+      if (state.isTestingEnvironment !== undefined) {
+        testing.value = state.isTestingEnvironment;
+      }
+    }
+  );
+
+  onUnmounted(() => {
+    unsubscribeStatus();
+    unsubscribeState();
+  });
+
+  return testing;
+}
